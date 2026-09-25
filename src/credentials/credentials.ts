@@ -14,7 +14,7 @@ export const CREDENTIALS_SERVICE = "cterm"
 /** ElevenLabs key used for voice transcription. */
 export const ELEVENLABS_API_KEY_ENV = "ELEVENLABS_API_KEY"
 
-/** OpenRouter key used to reach jev through the decisions API. */
+/** OpenRouter key used for transcription and to reach jev. */
 export const OPENROUTER_API_KEY_ENV = "OPENROUTER_API_KEY"
 
 /** Every secret `cterm login` stores, in display order. */

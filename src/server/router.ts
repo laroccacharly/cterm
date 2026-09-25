@@ -10,7 +10,7 @@ import {
 import { commands } from "../commands/commands.ts"
 import type { VoiceCommandSelectorService } from "../commands/voice-command.ts"
 import type { CtermConfig } from "../config/config.ts"
-import type { TranscriptionService } from "../elevenlabs/transcription.ts"
+import type { TranscriptionService } from "../openrouter/transcription.ts"
 import { commandCatalogue } from "../models/models.ts"
 import type { ModelsStoreService } from "../models/store.ts"
 import { parseSessionNumber, sessionNameFor } from "../terminal/sessions.ts"

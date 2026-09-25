@@ -3,12 +3,13 @@ import { HttpServerResponse } from "effect/unstable/http"
 import type { HttpServerRequest } from "effect/unstable/http"
 
 import type { TranscriptionResponse } from "../api/transcription.ts"
-import type { TranscriptionService } from "../elevenlabs/transcription.ts"
+import type { TranscriptionService } from "../openrouter/transcription.ts"
+import { remuxToOgg } from "../ffmpeg/ffmpeg.ts"
 import { jsonError } from "./http.ts"
 
 export const maxAudioBytes = 25 * 1024 * 1024
 
-/** Maps a browser audio MIME type to a filename extension ElevenLabs accepts. */
+/** Maps a browser audio MIME type to the format sent to OpenRouter. */
 export const extensionFor = (contentType: string): string => {
   const base = contentType.split(";")[0]?.trim().toLowerCase() ?? ""
 
@@ -31,6 +32,9 @@ export const extensionFor = (contentType: string): string => {
     }
   }
 }
+
+/** Formats OpenRouter's speech-to-text providers accept as-is. */
+const supportedFormats = new Set(["mp3", "ogg", "wav"])
 
 const fail = (
   status: number,
@@ -66,12 +70,27 @@ export const transcribeResponse = (
       return fail(413, "Recording is too large")
     }
 
+    const extension = extensionFor(contentType)
+    const converted = supportedFormats.has(extension)
+      ? Effect.succeed({ contentType, data: audio.value, extension })
+      : remuxToOgg(audio.value, extension).pipe(
+          Effect.map((data) => ({
+            contentType: "audio/ogg",
+            data,
+            extension: "ogg",
+          }))
+        )
+
     return yield* Effect.match(
-      transcription.transcribe({
-        contentType,
-        data: audio.value,
-        filename: `recording.${extensionFor(contentType)}`,
-      }),
+      converted.pipe(
+        Effect.flatMap((payload) =>
+          transcription.transcribe({
+            contentType: payload.contentType,
+            data: payload.data,
+            filename: `recording.${payload.extension}`,
+          })
+        )
+      ),
       {
         onFailure: (error) => fail(502, error.message),
         onSuccess: (result) =>

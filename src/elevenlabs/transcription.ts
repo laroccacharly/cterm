@@ -48,7 +48,7 @@ export interface TranscriptionService {
   ) => Effect.Effect<TranscriptionResponse, TranscriptionError>
 }
 
-/** ElevenLabs batch speech-to-text client. */
+/** ElevenLabs batch speech-to-text client (not wired in; cterm uses OpenRouter). */
 export class Transcription extends Context.Service<
   Transcription,
   TranscriptionService
