@@ -35,6 +35,8 @@ Wants=network-online.target
 Type=simple
 WorkingDirectory=${repoRoot}
 ExecStart="${bunPath}" "${cliEntry}" serve
+# Keep tmux servers alive when cterm is restarted or upgraded.
+KillMode=process
 Restart=always
 RestartSec=5
 TimeoutStopSec=15
@@ -104,10 +106,17 @@ export const uninstall = Effect.fn("uninstall")(function* uninstall() {
   yield* Effect.logInfo(`Uninstalled ${unitName}`)
 })
 
-/** Rewrite the unit file and restart the service. */
+/** Rewrite the unit file and queue a restart without disabling the service. */
 export const reinstall = Effect.fn("reinstall")(function* reinstall() {
-  yield* uninstall().pipe(Effect.ignore)
-  yield* install()
+  yield* writeUnit()
+  yield* systemctl(["daemon-reload"])
+  yield* systemctl(["enable", unitName])
+
+  // A reinstall is commonly launched from a terminal hosted by cterm itself.
+  // Waiting for restart would kill that terminal (and this CLI) midway through
+  // the operation. Queue it only after the unit is fully written and enabled.
+  yield* systemctl(["restart", "--no-block", unitName])
+  yield* Effect.logInfo(`Reinstalled and queued restart for ${unitName}`)
 })
 
 /** Print the current service status. */
