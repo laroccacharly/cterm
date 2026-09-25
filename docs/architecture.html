@@ -1,0 +1,410 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>cterm · architecture diagram</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: ui-sans-serif, system-ui, sans-serif;
+        background: #101715;
+        color: #eaf2e9;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        padding: 24px;
+      }
+      main {
+        max-width: 1500px;
+        margin: auto;
+      }
+      svg {
+        display: block;
+        width: 100%;
+        height: auto;
+        min-width: 960px;
+      }
+      .canvas {
+        overflow-x: auto;
+        border: 1px solid #34483e;
+        border-radius: 16px;
+        background: #141e19;
+      }
+      .panel {
+        fill: #1c2a22;
+        stroke: #3e5846;
+        stroke-width: 1.5;
+      }
+      .blue {
+        fill: #1c2933;
+        stroke: #527087;
+      }
+      .gold {
+        fill: #2c2a1e;
+        stroke: #807448;
+      }
+      .purple {
+        fill: #292435;
+        stroke: #76618b;
+      }
+      .zone {
+        fill: none;
+        stroke: #415747;
+        stroke-width: 1.5;
+        stroke-dasharray: 7 7;
+      }
+      .title {
+        fill: #eef6eb;
+        font-size: 31px;
+        font-weight: 750;
+        letter-spacing: -1px;
+      }
+      .subtitle {
+        fill: #afc2b2;
+        font-size: 15px;
+      }
+      .zone-label {
+        fill: #a4bbab;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 2px;
+      }
+      .name {
+        fill: #ecf5eb;
+        font-size: 18px;
+        font-weight: 700;
+      }
+      .detail {
+        fill: #b4c8b7;
+        font-size: 13px;
+      }
+      .path {
+        fill: #9ee1ad;
+        font:
+          12px ui-monospace,
+          monospace;
+      }
+      .label {
+        fill: #c7d8ca;
+        font-size: 12px;
+        font-weight: 650;
+      }
+      .wire {
+        fill: none;
+        stroke: #9cdaa9;
+        stroke-width: 2.5;
+        marker-end: url(#arrow);
+      }
+      .aux {
+        fill: none;
+        stroke: #d9c17b;
+        stroke-width: 2;
+        marker-end: url(#arrowGold);
+      }
+      .muted {
+        fill: none;
+        stroke: #839e8c;
+        stroke-width: 2;
+        marker-end: url(#arrowMuted);
+      }
+      .rule {
+        stroke: #3d5545;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="canvas">
+        <svg
+          viewBox="0 0 1400 1040"
+          role="img"
+          aria-labelledby="diagram-title diagram-description"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <title id="diagram-title">cterm component and workflow diagram</title>
+          <desc id="diagram-description">
+            Tailscale reaches the loopback Bun server. The React and xterm
+            browser communicates over WebSocket with a Bun PTY attached to
+            persistent tmux sessions. HTTP routes provide commands, diff,
+            transcription and voice-command selection through external services.
+          </desc>
+          <defs>
+            <marker
+              id="arrow"
+              viewBox="0 0 10 10"
+              refX="9"
+              refY="5"
+              markerWidth="8"
+              markerHeight="8"
+              orient="auto-start-reverse"
+            >
+              <path d="M0 0L10 5L0 10Z" fill="#9cdaa9" />
+            </marker>
+            <marker
+              id="arrowGold"
+              viewBox="0 0 10 10"
+              refX="9"
+              refY="5"
+              markerWidth="8"
+              markerHeight="8"
+              orient="auto-start-reverse"
+            >
+              <path d="M0 0L10 5L0 10Z" fill="#d9c17b" />
+            </marker>
+            <marker
+              id="arrowMuted"
+              viewBox="0 0 10 10"
+              refX="9"
+              refY="5"
+              markerWidth="8"
+              markerHeight="8"
+              orient="auto-start-reverse"
+            >
+              <path d="M0 0L10 5L0 10Z" fill="#839e8c" />
+            </marker>
+          </defs>
+          <text x="45" y="61" class="title">cterm / system diagram</text>
+          <text x="45" y="88" class="subtitle">
+            Follow the arrows: terminal I/O in green · optional HTTP features in
+            gold · setup and delivery in gray
+          </text>
+
+          <rect x="28" y="127" width="1344" height="360" rx="18" class="zone" />
+          <text x="48" y="153" class="zone-label">
+            01 LIVE TERMINAL · INPUT → SHELL → OUTPUT
+          </text>
+          <rect
+            x="50"
+            y="194"
+            width="186"
+            height="136"
+            rx="14"
+            class="panel blue"
+          />
+          <text x="69" y="227" class="name">Remote device</text>
+          <text x="69" y="253" class="detail">Phone / laptop</text>
+          <text x="69" y="276" class="detail">Private tailnet access</text>
+          <rect
+            x="291"
+            y="194"
+            width="195"
+            height="136"
+            rx="14"
+            class="panel blue"
+          />
+          <text x="310" y="227" class="name">Tailscale Serve</text>
+          <text x="310" y="253" class="detail">HTTPS → localhost</text>
+          <text x="310" y="276" class="detail">No public port</text>
+          <rect
+            x="544"
+            y="194"
+            width="235"
+            height="136"
+            rx="14"
+            class="panel"
+          />
+          <text x="563" y="227" class="name">Browser UI</text>
+          <text x="563" y="253" class="detail">React + xterm.js</text>
+          <text x="563" y="277" class="path">src/ui/src/</text>
+          <rect
+            x="849"
+            y="194"
+            width="225"
+            height="136"
+            rx="14"
+            class="panel"
+          />
+          <text x="868" y="227" class="name">Bun server</text>
+          <text x="868" y="253" class="detail">HTTP + WebSocket /ws</text>
+          <text x="868" y="277" class="path">src/server/</text>
+          <rect
+            x="1126"
+            y="194"
+            width="216"
+            height="136"
+            rx="14"
+            class="panel"
+          />
+          <text x="1145" y="227" class="name">PTY bridge</text>
+          <text x="1145" y="253" class="detail">Bun.Terminal + spawn</text>
+          <text x="1145" y="277" class="path">src/terminal/</text>
+          <path d="M236 262H291" class="muted" />
+          <path d="M486 262H544" class="muted" />
+          <path d="M779 238H849" class="wire" />
+          <path d="M849 289H779" class="wire" />
+          <text x="784" y="223" class="label">input / resize</text>
+          <text x="786" y="314" class="label">output bytes</text>
+          <path d="M1074 262H1126" class="wire" />
+          <rect x="992" y="373" width="350" height="82" rx="14" class="panel" />
+          <text x="1011" y="404" class="name">tmux sessions → shell</text>
+          <text x="1011" y="429" class="detail">
+            3 slots · persistent · starts in ~/Work
+          </text>
+          <path d="M1234 330V373" class="wire" />
+          <text x="699" y="419" class="detail">
+            Refresh or reconnect? The browser reattaches;
+          </text>
+          <text x="699" y="440" class="detail">
+            tmux keeps the shell running.
+          </text>
+
+          <rect x="28" y="510" width="1344" height="312" rx="18" class="zone" />
+          <text x="48" y="536" class="zone-label">
+            02 OPTIONAL FEATURES · BROWSER → HTTP ROUTES → LOCAL OR EXTERNAL
+            WORK
+          </text>
+          <rect
+            x="55"
+            y="582"
+            width="243"
+            height="187"
+            rx="14"
+            class="panel blue"
+          />
+          <text x="74" y="615" class="name">Browser actions</text>
+          <text x="74" y="642" class="detail">Commands / Diff views</text>
+          <text x="74" y="666" class="detail">
+            Mic: dictation or voice command
+          </text>
+          <text x="74" y="697" class="path">src/ui/src/components/</text>
+          <text x="74" y="718" class="path">src/ui/src/hooks/</text>
+          <rect
+            x="353"
+            y="582"
+            width="313"
+            height="187"
+            rx="14"
+            class="panel gold"
+          />
+          <text x="372" y="615" class="name">HTTP API</text>
+          <text x="372" y="642" class="detail">GET /commands · GET /diff</text>
+          <text x="372" y="666" class="detail">POST /transcribe</text>
+          <text x="372" y="690" class="detail">POST /voice-command</text>
+          <text x="372" y="718" class="path">
+            src/server/router.ts · src/api/
+          </text>
+          <path d="M298 668H353" class="aux" />
+          <rect
+            x="724"
+            y="559"
+            width="276"
+            height="97"
+            rx="14"
+            class="panel gold"
+          />
+          <text x="743" y="589" class="name">Local data + actions</text>
+          <text x="743" y="613" class="detail">
+            git diff · command catalogue
+          </text>
+          <text x="743" y="637" class="path">src/commands/ · src/models/</text>
+          <rect
+            x="724"
+            y="684"
+            width="276"
+            height="98"
+            rx="14"
+            class="panel gold"
+          />
+          <text x="743" y="714" class="name">Voice services</text>
+          <text x="743" y="738" class="detail">
+            Transcription · command selection
+          </text>
+          <text x="743" y="763" class="path">
+            src/elevenlabs/ · src/typesafe/
+          </text>
+          <path d="M666 623H724" class="aux" />
+          <path d="M666 724H724" class="aux" />
+          <rect
+            x="1055"
+            y="559"
+            width="285"
+            height="97"
+            rx="14"
+            class="panel purple"
+          />
+          <text x="1074" y="589" class="name">Filesystem + pi</text>
+          <text x="1074" y="613" class="detail">
+            Diff of active session directory
+          </text>
+          <text x="1074" y="637" class="detail">
+            Vetted model commands for pi
+          </text>
+          <rect
+            x="1055"
+            y="684"
+            width="285"
+            height="98"
+            rx="14"
+            class="panel purple"
+          />
+          <text x="1074" y="714" class="name">External APIs</text>
+          <text x="1074" y="738" class="detail">
+            ElevenLabs · OpenRouter / jev
+          </text>
+          <text x="1074" y="763" class="detail">Keys from OS keychain</text>
+          <path d="M1000 607H1055" class="aux" />
+          <path d="M1000 733H1055" class="aux" />
+          <text x="50" y="854" class="zone-label">
+            03 BOOTSTRAP + DEPENDENCIES
+          </text>
+          <path d="M50 866H1350" class="rule" />
+          <rect x="50" y="893" width="298" height="105" rx="14" class="panel" />
+          <text x="69" y="923" class="name">CLI + configuration</text>
+          <text x="69" y="948" class="detail">
+            Serve · login · models · config
+          </text>
+          <text x="69" y="974" class="path">src/cli/ · src/config/</text>
+          <rect
+            x="382"
+            y="893"
+            width="298"
+            height="105"
+            rx="14"
+            class="panel"
+          />
+          <text x="401" y="923" class="name">Deployment</text>
+          <text x="401" y="948" class="detail">
+            systemd user service · Tailscale
+          </text>
+          <text x="401" y="974" class="path">
+            src/service/ · src/tailscale/
+          </text>
+          <rect
+            x="714"
+            y="893"
+            width="298"
+            height="105"
+            rx="14"
+            class="panel"
+          />
+          <text x="733" y="923" class="name">Runtime + UI stack</text>
+          <text x="733" y="948" class="detail">
+            Bun · Effect · React · xterm.js
+          </text>
+          <text x="733" y="974" class="detail">
+            Vite · @pierre/diffs · qrcode
+          </text>
+          <rect
+            x="1046"
+            y="893"
+            width="298"
+            height="105"
+            rx="14"
+            class="panel"
+          />
+          <text x="1065" y="923" class="name">Checks</text>
+          <text x="1065" y="948" class="detail">Bun test · Playwright E2E</text>
+          <text x="1065" y="974" class="detail">
+            TypeScript · oxlint · oxfmt
+          </text>
+          <path d="M348 945H382" class="muted" />
+          <path d="M680 945H714" class="muted" />
+        </svg>
+      </div>
+    </main>
+  </body>
+</html>
