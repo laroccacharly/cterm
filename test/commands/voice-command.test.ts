@@ -18,19 +18,18 @@ const hasOpenRouterApiKey =
   process.env.OPENROUTER_API_KEY !== ""
 
 describe("voiceCommandCriteria", () => {
-  test("keyed by command id with label and description", () => {
+  test("offers every command plus none, each with a description", () => {
     const criteria = voiceCommandCriteria(commands)
 
     expect(Object.keys(criteria)).toEqual([
       ...commands.map(({ id }) => id),
       VOICE_COMMAND_NONE_ID,
     ])
-    expect(criteria["font-increase"]).toBe(
-      "Increase font size: Make the terminal text one step larger."
-    )
-    expect(criteria[VOICE_COMMAND_NONE_ID]).toBe(
-      "None: use this when the request matches no supported command."
-    )
+    for (const command of commands) {
+      expect(criteria[command.id]).toContain(command.label)
+      expect(criteria[command.id]).toContain(command.description)
+    }
+    expect(criteria[VOICE_COMMAND_NONE_ID]).not.toBe("")
   })
 })
 

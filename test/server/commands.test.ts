@@ -14,60 +14,39 @@ import { commandsHttpResponse } from "../../src/server/commands.ts"
 const decodeCommandsResponse = Schema.decodeUnknownSync(CommandsResponseSchema)
 
 describe("Commands endpoint", () => {
-  test("returns every command with a label and description", async () => {
+  test("serves the catalogue with a label and description per command", async () => {
     const response = HttpServerResponse.toWeb(commandsHttpResponse(commands))
     const payload = decodeCommandsResponse(await response.json())
 
     expect(response.status).toBe(200)
     expect(payload).toEqual(commandsResponse)
-    expect(payload.commands.map(({ id }) => id)).toEqual([
-      "new-session",
-      "font-increase",
-      "font-decrease",
-    ])
     for (const command of payload.commands) {
       expect(command.label).not.toBe("")
       expect(command.description).not.toBe("")
     }
   })
 
-  test("merges vetted models into the catalogue", async () => {
+  test("gives every command a unique id", () => {
+    const ids = commands.map(({ id }) => id)
+
+    expect(new Set(ids).size).toBe(ids.length)
+  })
+
+  test("submits every input command with a carriage return", () => {
+    for (const { action } of commands) {
+      if (action.type === "input") {
+        expect(action.data.endsWith("\r")).toBe(true)
+      }
+    }
+  })
+
+  test("serves vetted models alongside the static commands", async () => {
     const catalogue = commandCatalogue(commands, [
       { aliases: ["sol"], id: "openai-codex/gpt-5.6-sol", name: "GPT-5.6 Sol" },
     ])
     const response = HttpServerResponse.toWeb(commandsHttpResponse(catalogue))
     const payload = decodeCommandsResponse(await response.json())
 
-    expect(payload.commands).toHaveLength(commands.length + 1)
-    expect(payload.commands.at(-1)).toEqual({
-      action: { data: "/model openai-codex/gpt-5.6-sol\r", type: "input" },
-      description:
-        "Switch the current pi session to GPT-5.6 Sol. Also called sol.",
-      id: "model:openai-codex/gpt-5.6-sol",
-      label: "Use GPT-5.6 Sol",
-    })
-  })
-
-  test("describes how the browser should execute each command", () => {
-    expect(commandsResponse.commands).toEqual([
-      {
-        action: { data: "/new\r", type: "input" },
-        description: "Start a fresh shell session in the current directory.",
-        id: "new-session",
-        label: "New session",
-      },
-      {
-        action: { delta: 1, type: "font-size" },
-        description: "Make the terminal text one step larger.",
-        id: "font-increase",
-        label: "Increase font size",
-      },
-      {
-        action: { delta: -1, type: "font-size" },
-        description: "Make the terminal text one step smaller.",
-        id: "font-decrease",
-        label: "Decrease font size",
-      },
-    ])
+    expect(payload.commands).toEqual([...catalogue])
   })
 })

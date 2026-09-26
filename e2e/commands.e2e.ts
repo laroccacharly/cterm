@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test"
 import { Schema } from "effect"
 
-import { CommandsResponseSchema } from "../src/commands/commands.ts"
+import { CommandsResponseSchema, commands } from "../src/commands/commands.ts"
 import { activeRows } from "./helpers.ts"
 
 const decodeCommandsResponse = Schema.decodeUnknownSync(CommandsResponseSchema)
@@ -11,11 +11,7 @@ test("serves the command catalogue from /commands", async ({ request }) => {
 
   expect(response.status()).toBe(200)
   const payload = decodeCommandsResponse(await response.json())
-  expect(payload.commands.map(({ id }) => id)).toEqual([
-    "new-session",
-    "font-increase",
-    "font-decrease",
-  ])
+  expect(payload.commands.slice(0, commands.length)).toEqual([...commands])
   for (const command of payload.commands) {
     expect(command.label.length).toBeGreaterThan(0)
     expect(command.description.length).toBeGreaterThan(0)

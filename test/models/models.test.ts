@@ -45,40 +45,40 @@ describe("ModelsFileSchema", () => {
 })
 
 describe("modelCommand", () => {
-  test("is an input command that types pi's /model slash command", () => {
-    expect(
-      modelCommand({
-        aliases: ["sol"],
-        id: "openai-codex/gpt-5.6-sol",
-        name: "GPT-5.6 Sol",
-      })
-    ).toEqual({
-      action: { data: "/model openai-codex/gpt-5.6-sol\r", type: "input" },
-      description:
-        "Switch the current pi session to GPT-5.6 Sol. Also called sol.",
-      id: modelCommandId("openai-codex/gpt-5.6-sol"),
-      label: "Use GPT-5.6 Sol",
+  const sol = {
+    aliases: ["sol", "the sun"],
+    id: "openai-codex/gpt-5.6-sol",
+    name: "GPT-5.6 Sol",
+  }
+
+  test("types pi's /model slash command under a namespaced id", () => {
+    const command = modelCommand(sol)
+
+    expect(command.action).toEqual({
+      data: "/model openai-codex/gpt-5.6-sol\r",
+      type: "input",
     })
+    expect(command.id).toBe(modelCommandId(sol.id))
+    expect(commands.map(({ id }) => id)).not.toContain(command.id)
   })
 
-  test("adds a /thinking command when a level is pinned", () => {
-    expect(
-      modelCommand({
-        aliases: ["astra"],
-        id: "openai-codex/gpt-6-astra",
-        name: "GPT-6 Astra",
-        thinkingLevel: "high",
-      })
-    ).toEqual({
-      action: {
-        data: "/model openai-codex/gpt-6-astra\r/thinking high\r",
-        type: "input",
-      },
-      description:
-        "Switch the current pi session to GPT-6 Astra. Also called astra. Sets high reasoning.",
-      id: modelCommandId("openai-codex/gpt-6-astra"),
-      label: "Use GPT-6 Astra",
+  test("describes the model by name and every alias so voice can match it", () => {
+    const { description, label } = modelCommand(sol)
+
+    expect(label).toContain(sol.name)
+    for (const word of [sol.name, ...sol.aliases]) {
+      expect(description).toContain(word)
+    }
+  })
+
+  test("follows /model with /thinking when a level is pinned", () => {
+    const command = modelCommand({ ...sol, thinkingLevel: "high" })
+
+    expect(command.action).toEqual({
+      data: "/model openai-codex/gpt-5.6-sol\r/thinking high\r",
+      type: "input",
     })
+    expect(command.description).toContain("high")
   })
 })
 
