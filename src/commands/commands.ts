@@ -57,6 +57,14 @@ export const commands: readonly Command[] = [
     id: "font-decrease",
     label: "Decrease font size",
   },
+  ...(["low", "medium", "high"] as const).map(
+    (level): Command => ({
+      action: { data: `/thinking ${level}\r`, type: "input" },
+      description: `Set the current pi session to ${level} reasoning (thinking ${level}).`,
+      id: `thinking-${level}`,
+      label: `Thinking ${level}`,
+    })
+  ),
 ]
 
 export const commandsResponse: CommandsResponse = { commands: [...commands] }
