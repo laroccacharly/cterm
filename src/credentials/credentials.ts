@@ -41,6 +41,10 @@ export class CredentialsError extends Schema.TaggedError<CredentialsError>()(
 const keychainHint =
   "the OS keychain is unavailable; on Linux this requires a running secret service such as GNOME Keyring or KWallet"
 
+/** Keychain failure detail, keeping the underlying error so it is diagnosable. */
+const keychainDetail = (action: string, cause: unknown): string =>
+  `${action}: ${keychainHint} (${cause instanceof Error ? cause.message : String(cause)})`
+
 const fromEnv = (
   name: SecretName
 ): Effect.Effect<Option.Option<Redacted.Redacted>> =>
@@ -48,16 +52,53 @@ const fromEnv = (
     Effect.orElseSucceed(() => Option.none<Redacted.Redacted>())
   )
 
+/**
+ * Read the secret in a fresh `secret-tool` process. A long-running process
+ * keeps its keychain connection, which goes stale when the secret service
+ * restarts (for example after gnome-keyring-daemon crashes); a new process
+ * opens a new connection.
+ */
+const loadFresh = async (name: SecretName): Promise<string | null> => {
+  const child = Bun.spawn(
+    ["secret-tool", "lookup", "service", CREDENTIALS_SERVICE, "account", name],
+    { stderr: "pipe", stdout: "pipe" }
+  )
+  const [stdout, stderr, exitCode] = await Promise.all([
+    new Response(child.stdout).text(),
+    new Response(child.stderr).text(),
+    child.exited,
+  ])
+  if (exitCode === 0) {
+    return stdout
+  }
+  // secret-tool exits 1 with no output when the item does not exist.
+  if (stderr.trim().length === 0) {
+    return null
+  }
+  throw new Error(stderr.trim())
+}
+
+/** Read through Bun's keychain API, reconnecting via a fresh process on failure. */
+const readSecret = async (name: SecretName): Promise<string | null> => {
+  try {
+    return await Bun.secrets.get({ name, service: CREDENTIALS_SERVICE })
+  } catch {
+    return await loadFresh(name)
+  }
+}
+
 const load = (
   name: SecretName
 ): Effect.Effect<Option.Option<Redacted.Redacted>, CredentialsError> =>
   Effect.tryPromise({
-    try: async () =>
-      await Bun.secrets.get({ name, service: CREDENTIALS_SERVICE }),
+    try: async () => await readSecret(name),
     catch: (cause) =>
       new CredentialsError({
         cause,
-        detail: `Could not read ${name} from the keychain: ${keychainHint}`,
+        detail: keychainDetail(
+          `Could not read ${name} from the keychain`,
+          cause
+        ),
       }),
   }).pipe(
     Effect.map((value) =>
@@ -82,7 +123,10 @@ const save = (
     catch: (cause) =>
       new CredentialsError({
         cause,
-        detail: `Could not store ${name} in the keychain: ${keychainHint}`,
+        detail: keychainDetail(
+          `Could not store ${name} in the keychain`,
+          cause
+        ),
       }),
   }).pipe(Effect.asVoid)
 
@@ -93,7 +137,10 @@ const remove = (name: SecretName): Effect.Effect<boolean, CredentialsError> =>
     catch: (cause) =>
       new CredentialsError({
         cause,
-        detail: `Could not delete ${name} from the keychain: ${keychainHint}`,
+        detail: keychainDetail(
+          `Could not delete ${name} from the keychain`,
+          cause
+        ),
       }),
   })
 
