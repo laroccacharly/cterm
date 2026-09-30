@@ -644,20 +644,6 @@ button {
   animation: listening-spin 900ms linear infinite;
 }
 
-.voice-command-button {
-  border-color: #6d5aa8;
-  background: #2b2544e8;
-}
-
-.voice-command-button:hover:not(:disabled) {
-  border-color: #9d8be0;
-  background: #372f56;
-}
-
-.voice-command-button:focus-visible {
-  outline-color: #bb9af7;
-}
-
 .toaster {
   position: fixed;
   bottom: max(16px, env(safe-area-inset-bottom));

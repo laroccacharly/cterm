@@ -8,23 +8,16 @@ interface ShortcutsProps {
   readonly onSend: (data: string) => void
   readonly onToggleKeyboard: () => void
   readonly recorder: Recorder
-  readonly voiceCommandRecorder: Recorder
 }
 
-const recorderLabel = (
-  state: RecorderState,
-  kind: "input" | "voice-command"
-) => {
-  const noun = kind === "voice-command" ? "voice command" : "voice input"
+const recorderLabel = (state: RecorderState) => {
   if (state === "recording") {
-    return `Stop ${noun}`
+    return "Stop voice input"
   }
   if (state === "transcribing") {
-    return kind === "voice-command"
-      ? "Running voice command"
-      : "Transcribing voice input"
+    return "Transcribing voice input"
   }
-  return `Start ${noun}`
+  return "Start voice input"
 }
 
 const preventFocusSteal = (event: { preventDefault: () => void }) => {
@@ -117,7 +110,6 @@ export const Shortcuts = ({
   onSend,
   onToggleKeyboard,
   recorder,
-  voiceCommandRecorder,
 }: ShortcutsProps) => {
   const toaster = useToaster()
 
@@ -144,25 +136,12 @@ export const Shortcuts = ({
   return (
     <div aria-label="Terminal shortcuts" className="terminal-controls">
       <button
-        aria-label={recorderLabel(voiceCommandRecorder.state, "voice-command")}
-        className={`voice-button voice-command-button voice-button--${voiceCommandRecorder.state}`}
-        disabled={voiceCommandRecorder.state === "transcribing"}
-        onClick={voiceCommandRecorder.toggle}
-        onMouseDown={preventFocusSteal}
-        title={recorderLabel(voiceCommandRecorder.state, "voice-command")}
-        type="button"
-      >
-        <svg aria-hidden="true" viewBox="0 0 24 24">
-          <path d="M4 5h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Zm1 2v10h14V7H5Zm2.2 1.3 3.1 3.1-3.1 3.1-1.1-1.1L8.3 11 6.1 8.8l1.1-1.1ZM11 13h5v1.4h-5V13Z" />
-        </svg>
-      </button>
-      <button
-        aria-label={recorderLabel(recorder.state, "input")}
+        aria-label={recorderLabel(recorder.state)}
         className={`voice-button voice-button--${recorder.state}`}
         disabled={recorder.state === "transcribing"}
         onClick={recorder.toggle}
         onMouseDown={preventFocusSteal}
-        title={recorderLabel(recorder.state, "input")}
+        title={recorderLabel(recorder.state)}
         type="button"
       >
         <svg aria-hidden="true" viewBox="0 0 24 24">

@@ -1,11 +1,9 @@
 import { useAtomSet } from "@effect/atom-react"
 import { lazy, Suspense, useState } from "react"
 
-import { transcribeAtom, voiceCommandAtom } from "./atoms.ts"
+import { transcribeAtom } from "./atoms.ts"
 import { CommandsView } from "./commands/commands-view.tsx"
-import { runCommand } from "./commands/commands.ts"
 import { AppHeader } from "./components/app-header.tsx"
-import { NoticeDialog } from "./components/notice-dialog.tsx"
 import { SessionTabs } from "./components/session-tabs.tsx"
 import { TerminalView } from "./components/terminal-view.tsx"
 import { useToaster } from "./components/toaster.tsx"
@@ -21,32 +19,15 @@ const DiffView = lazy(async () => {
 
 export const App = () => {
   const [view, setView] = useState<View>("terminal")
-  const [notice, setNotice] = useState<string | null>(null)
   const [diffControlsContainer, setDiffControlsContainer] =
     useState<HTMLDivElement | null>(null)
   const sessions = useTerminalSessions(view === "terminal")
   const terminal = sessions.active
   const transcribe = useAtomSet(transcribeAtom, { mode: "promise" })
-  const runVoiceCommand = useAtomSet(voiceCommandAtom, { mode: "promise" })
   const toaster = useToaster()
   const recorder = useRecorder({
     onError: toaster.error,
     onTranscript: terminal.sendInput,
-    transcribe,
-  })
-  const voiceCommandRecorder = useRecorder({
-    onError: toaster.error,
-    onTranscript: async (transcript) => {
-      const command = await runVoiceCommand(transcript)
-      if (command === null) {
-        setNotice("No commands found")
-        return
-      }
-      runCommand(command, {
-        changeFontSize: terminal.changeFontSize,
-        sendInput: terminal.sendInput,
-      })
-    },
     transcribe,
   })
 
@@ -54,7 +35,6 @@ export const App = () => {
   if (view === "terminal") {
     controls = (
       <Shortcuts
-        voiceCommandRecorder={voiceCommandRecorder}
         isTouchDevice={terminal.isTouchDevice}
         keyboardActive={terminal.keyboardActive}
         onPaste={terminal.paste}
@@ -118,14 +98,7 @@ export const App = () => {
           </Suspense>
         ) : null}
       </div>
-      {notice === null ? null : (
-        <NoticeDialog
-          message={notice}
-          onDismiss={() => {
-            setNotice(null)
-          }}
-        />
-      )}
+
     </main>
   )
 }

@@ -66,67 +66,16 @@ test("runs a command from the Commands page in the terminal", async ({
   await expect(activeRows(page)).toContainText("/new")
 })
 
-test("runs a command picked from a voice transcript", async ({ page }) => {
-  await page.route("**/transcribe", async (route) => {
-    await route.fulfill({
-      body: JSON.stringify({ text: "start a new session" }),
-      contentType: "application/json",
-      status: 200,
-    })
-  })
-  await page.route("**/voice-command", async (route) => {
-    await route.fulfill({
-      body: JSON.stringify({
-        command: {
-          action: { data: "/new\r", type: "input" },
-          description: "Start a fresh shell session in the current directory.",
-          id: "new-session",
-          label: "New session",
-        },
-      }),
-      contentType: "application/json",
-      status: 200,
-    })
-  })
+test("hides voice commands while keeping voice input available", async ({
+  page,
+}) => {
   await page.goto("/")
   await expect(page.locator('[data-status="connected"]')).toBeAttached()
 
-  await page.getByRole("button", { name: "Start voice command" }).click()
   await expect(
-    page.getByRole("button", { name: "Stop voice command" })
+    page.getByRole("button", { name: /voice command/iu })
+  ).toHaveCount(0)
+  await expect(
+    page.getByRole("button", { name: "Start voice input" })
   ).toBeVisible()
-  await page.waitForTimeout(300)
-  await page.getByRole("button", { name: "Stop voice command" }).click()
-
-  await expect(activeRows(page)).toContainText("/new")
-})
-
-test("shows an alert when no command matches", async ({ page }) => {
-  await page.route("**/transcribe", async (route) => {
-    await route.fulfill({
-      body: JSON.stringify({ text: "do something impossible" }),
-      contentType: "application/json",
-      status: 200,
-    })
-  })
-  await page.route("**/voice-command", async (route) => {
-    await route.fulfill({
-      body: JSON.stringify({ command: null }),
-      contentType: "application/json",
-      status: 200,
-    })
-  })
-  await page.goto("/")
-  await expect(page.locator('[data-status="connected"]')).toBeAttached()
-
-  await page.getByRole("button", { name: "Start voice command" }).click()
-  await page.waitForTimeout(300)
-  await page.getByRole("button", { name: "Stop voice command" }).click()
-
-  const dialog = page.getByRole("alertdialog", { name: "Notice" })
-  await expect(dialog).toBeVisible()
-  await expect(dialog.getByText("No commands found")).toBeVisible()
-
-  await dialog.getByRole("button", { name: "OK" }).click()
-  await expect(dialog).toBeHidden()
 })
