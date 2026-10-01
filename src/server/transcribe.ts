@@ -3,8 +3,8 @@ import { HttpServerResponse } from "effect/unstable/http"
 import type { HttpServerRequest } from "effect/unstable/http"
 
 import type { TranscriptionResponse } from "../api/transcription.ts"
-import type { TranscriptionService } from "../openrouter/transcription.ts"
 import { remuxToOgg } from "../ffmpeg/ffmpeg.ts"
+import type { TranscriptionService } from "../openrouter/transcription.ts"
 import { jsonError } from "./http.ts"
 
 export const maxAudioBytes = 25 * 1024 * 1024

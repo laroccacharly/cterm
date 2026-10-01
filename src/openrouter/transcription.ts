@@ -70,7 +70,6 @@ const describeFailure = (cause: unknown): Effect.Effect<string> => {
   )
 }
 
-
 export interface TranscriptionService {
   readonly transcribe: (
     input: TranscribeInput
