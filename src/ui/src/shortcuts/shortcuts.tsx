@@ -38,6 +38,13 @@ const enterShortcut: SendShortcut = {
   text: "⏎",
 }
 
+const escapeShortcut: SendShortcut = {
+  className: "escape-button",
+  data: "\u001B",
+  label: "Send Escape",
+  text: "Esc",
+}
+
 /** Fixed input shortcuts rendered after the optional touch keyboard button. */
 const shortcuts: readonly SendShortcut[] = [
   {
@@ -183,6 +190,7 @@ export const Shortcuts = ({
       >
         <span aria-hidden="true">Paste</span>
       </button>
+      <SendButton onSend={onSend} shortcut={escapeShortcut} />
     </div>
   )
 }

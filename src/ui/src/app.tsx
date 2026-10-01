@@ -98,7 +98,6 @@ export const App = () => {
           </Suspense>
         ) : null}
       </div>
-
     </main>
   )
 }

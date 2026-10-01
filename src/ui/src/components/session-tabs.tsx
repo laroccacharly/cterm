@@ -54,7 +54,9 @@ const ResetButton = ({ session, terminal }: ResetButtonProps) => {
       title={`Reset session ${session} (fresh shell, reloads .bashrc)`}
       type="button"
     >
-      <span className="session-tab__number">{armed ? "Confirm?" : "Reset"}</span>
+      <span className="session-tab__number">
+        {armed ? "Confirm?" : "Reset"}
+      </span>
     </button>
   )
 }

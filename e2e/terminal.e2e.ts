@@ -47,6 +47,24 @@ test("Ctrl+C button interrupts the foreground process", async ({ page }) => {
   await expect(activeRows(page)).toContainText("__CTERM_AFTER_CTRLC__")
 })
 
+test("Escape button is the last shortcut and sends ESC to the terminal", async ({
+  page,
+}) => {
+  await page.goto("/")
+  await expect(page.locator('[data-status="connected"]')).toBeAttached()
+
+  await expect(
+    page.locator(".terminal-controls > button").last()
+  ).toHaveAccessibleName("Send Escape")
+
+  await runInActiveTerminal(
+    page,
+    "read -rsn1 k; printf '__CTERM_KEY__%s\\n' \"$(printf %s \"$k\" | od -An -tx1 | tr -d ' ')\""
+  )
+  await page.getByRole("button", { name: "Send Escape" }).click()
+  await expect(activeRows(page)).toContainText("__CTERM_KEY__1b")
+})
+
 test("cd .. button navigates to the parent directory", async ({ page }) => {
   await page.goto("/")
   await expect(page.locator('[data-status="connected"]')).toBeAttached()
