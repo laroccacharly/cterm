@@ -1,11 +1,11 @@
 import { Effect, FileSystem, Layer, Option } from "effect"
-import { CliError, Command, Flag } from "effect/unstable/cli"
+import { CliError, Command, Flag } from "effect/cli"
 
 import { Config } from "../../config/config.ts"
 import { serverLayer } from "../../server/serve.ts"
 import { buildUi } from "../../server/ui.ts"
 
-const portFlag = Flag.integer("port").pipe(
+const portFlag = Flag.Int("port").pipe(
   Flag.withAlias("p"),
   Flag.withDescription("Port to serve the UI on (overrides config)")
 )

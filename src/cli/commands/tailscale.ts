@@ -1,5 +1,5 @@
 import { Console, Effect, Option } from "effect"
-import { Command, Flag } from "effect/unstable/cli"
+import { Command, Flag } from "effect/cli"
 
 import { Config } from "../../config/config.ts"
 import { checkHealth } from "../../health/health-check.ts"
@@ -12,14 +12,14 @@ import {
   status,
 } from "../../tailscale/tailscale.ts"
 
-const portFlag = Flag.integer("port").pipe(
+const portFlag = Flag.Int("port").pipe(
   Flag.withAlias("p"),
   Flag.withDescription(
     "Local port the cterm server listens on (overrides config)"
   )
 )
 
-const tailscalePortFlag = Flag.integer("tailscale-port").pipe(
+const tailscalePortFlag = Flag.Int("tailscale-port").pipe(
   Flag.withDescription(
     "HTTPS port to publish cterm on over Tailscale (overrides config)"
   )

@@ -8,11 +8,7 @@ import {
   Schedule,
   Schema,
 } from "effect"
-import {
-  HttpClient,
-  HttpClientRequest,
-  HttpClientResponse,
-} from "effect/unstable/http"
+import { HttpClient, HttpClientRequest, HttpClientResponse } from "effect/http"
 
 import { TranscriptionResponseSchema } from "../api/transcription.ts"
 import type { TranscriptionResponse } from "../api/transcription.ts"

@@ -1,6 +1,6 @@
 import { Effect, Stream } from "effect"
-import { ChildProcessSpawner } from "effect/unstable/process"
-import type { ChildProcess } from "effect/unstable/process"
+import { ChildProcessSpawner } from "effect/process"
+import type { ChildProcess } from "effect/process"
 
 export interface ProcessResult {
   readonly exitCode: ChildProcessSpawner.ExitCode

@@ -1,11 +1,7 @@
 import path from "node:path"
 
 import { Effect } from "effect"
-import {
-  HttpRouter,
-  HttpServerRequest,
-  HttpServerResponse,
-} from "effect/unstable/http"
+import { HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/http"
 
 import { commands } from "../commands/commands.ts"
 import type { VoiceCommandSelectorService } from "../commands/voice-command.ts"

@@ -1,8 +1,8 @@
 #!/usr/bin/env bun
 import { BunRuntime, BunServices } from "@effect/platform-bun"
 import { Effect, Layer } from "effect"
-import { Command } from "effect/unstable/cli"
-import { FetchHttpClient } from "effect/unstable/http"
+import { Command } from "effect/cli"
+import { FetchHttpClient } from "effect/http"
 
 import { Config } from "../config/config.ts"
 import { Credentials } from "../credentials/credentials.ts"

@@ -1,25 +1,25 @@
 import { Console, Effect, Option } from "effect"
-import { Command, Flag } from "effect/unstable/cli"
+import { Command, Flag } from "effect/cli"
 
 import type { CtermConfig, CtermConfigPatch } from "../../config/config.ts"
 import { Config } from "../../config/config.ts"
 import { configPath } from "../../config/paths.ts"
 
-const portFlag = Flag.integer("port").pipe(
+const portFlag = Flag.Int("port").pipe(
   Flag.withAlias("p"),
   Flag.withDescription("Local HTTP port")
 )
 
-const tailscalePortFlag = Flag.integer("tailscale-port").pipe(
+const tailscalePortFlag = Flag.Int("tailscale-port").pipe(
   Flag.withDescription("HTTPS port to publish cterm on over Tailscale")
 )
 
-const workingDirectoryFlag = Flag.string("working-directory").pipe(
+const workingDirectoryFlag = Flag.String("working-directory").pipe(
   Flag.withAlias("d"),
   Flag.withDescription("Directory where the tmux shell starts")
 )
 
-const sessionNameFlag = Flag.string("session-name").pipe(
+const sessionNameFlag = Flag.String("session-name").pipe(
   Flag.withDescription("Persistent tmux session name")
 )
 

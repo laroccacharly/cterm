@@ -1,10 +1,10 @@
 import { Console, Effect } from "effect"
-import { CliError, Command, Flag } from "effect/unstable/cli"
+import { CliError, Command, Flag } from "effect/cli"
 
 import { Config } from "../../config/config.ts"
 import { checkHealth } from "../../health/health-check.ts"
 
-const portFlag = Flag.integer("port").pipe(
+const portFlag = Flag.Int("port").pipe(
   Flag.withAlias("p"),
   Flag.withDescription("Port to check (overrides config)")
 )

@@ -1,5 +1,5 @@
 import { Console, Effect } from "effect"
-import { CliError, Command } from "effect/unstable/cli"
+import { CliError, Command } from "effect/cli"
 
 import { piSettingsPath } from "../../config/paths.ts"
 import { ModelsStore } from "../../models/store.ts"

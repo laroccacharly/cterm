@@ -1,7 +1,7 @@
 import path from "node:path"
 
 import { Effect, FileSystem, Schema } from "effect"
-import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process"
+import { ChildProcess, ChildProcessSpawner } from "effect/process"
 
 import { configHome } from "../config/paths.ts"
 import { runProcess } from "../process/command.ts"

@@ -1,6 +1,6 @@
 import { Duration } from "effect"
-import { FetchHttpClient } from "effect/unstable/http"
-import { Atom } from "effect/unstable/reactivity"
+import { FetchHttpClient } from "effect/http"
+import { Atom } from "effect/reactivity"
 
 import {
   fetchCommands,

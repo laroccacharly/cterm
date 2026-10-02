@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test"
 
 import { Effect, Layer, Option, Predicate, Redacted, Schema } from "effect"
-import { HttpClient, HttpClientResponse } from "effect/unstable/http"
-import type { HttpClientRequest } from "effect/unstable/http"
+import { HttpClient, HttpClientResponse } from "effect/http"
+import type { HttpClientRequest } from "effect/http"
 
 import { Credentials } from "../../src/credentials/credentials.ts"
 import {

@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test"
 
 import { Effect, Option, Schema } from "effect"
-import { HttpServerRequest, HttpServerResponse } from "effect/unstable/http"
+import { HttpServerRequest, HttpServerResponse } from "effect/http"
 
 import { commands } from "../../src/commands/commands.ts"
 import type { VoiceCommandSelectorService } from "../../src/commands/voice-command.ts"

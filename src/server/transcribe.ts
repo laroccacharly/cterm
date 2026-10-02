@@ -1,6 +1,6 @@
 import { Effect, Option } from "effect"
-import { HttpServerResponse } from "effect/unstable/http"
-import type { HttpServerRequest } from "effect/unstable/http"
+import { HttpServerResponse } from "effect/http"
+import type { HttpServerRequest } from "effect/http"
 
 import type { TranscriptionResponse } from "../api/transcription.ts"
 import { remuxToOgg } from "../ffmpeg/ffmpeg.ts"

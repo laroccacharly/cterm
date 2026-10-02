@@ -4,7 +4,7 @@ import {
   HttpClient,
   HttpClientRequest,
   HttpClientResponse,
-} from "effect/unstable/http"
+} from "effect/http"
 
 import { ChoiceAnswerSchema } from "./choice.ts"
 import type { ChoiceAnswer, ChoiceQuestion } from "./choice.ts"

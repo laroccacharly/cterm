@@ -48,7 +48,7 @@ const keychainDetail = (action: string, cause: unknown): string =>
 const fromEnv = (
   name: SecretName
 ): Effect.Effect<Option.Option<Redacted.Redacted>> =>
-  Config.option(Config.redacted(name)).pipe(
+  Config.option(Config.Redacted(name)).pipe(
     Effect.orElseSucceed(() => Option.none<Redacted.Redacted>())
   )
 

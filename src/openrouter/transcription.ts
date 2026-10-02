@@ -13,7 +13,7 @@ import {
   HttpClientError,
   HttpClientRequest,
   HttpClientResponse,
-} from "effect/unstable/http"
+} from "effect/http"
 
 import { TranscriptionResponseSchema } from "../api/transcription.ts"
 import type { TranscriptionResponse } from "../api/transcription.ts"

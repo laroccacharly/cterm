@@ -1,7 +1,7 @@
 import { useAtomRefresh, useAtomValue } from "@effect/atom-react"
 import { parsePatchFiles } from "@pierre/diffs"
 import { FileDiff } from "@pierre/diffs/react"
-import { AsyncResult } from "effect/unstable/reactivity"
+import { AsyncResult } from "effect/reactivity"
 import { useMemo } from "react"
 import { createPortal } from "react-dom"
 
