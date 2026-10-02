@@ -7,6 +7,8 @@ import type { DiffResponse } from "../api/diff.ts"
 const maxDiffBytes = 8 * 1024 * 1024
 
 interface CommandOptions {
+  // Log a failed run; leave unset for probes where a non-zero exit is expected.
+  readonly logFailures?: boolean
   readonly cwd?: string
   readonly env?: Record<string, string>
 }
@@ -21,19 +23,34 @@ const runCommand = async (
   command: readonly string[],
   options: CommandOptions = {}
 ): Promise<CommandResult> => {
-  const subprocess = Bun.spawn([...command], {
-    cwd: options.cwd,
-    env: options.env,
-    stderr: "pipe",
-    stdout: "pipe",
-  })
-  const [exitCode, stderr, stdout] = await Promise.all([
-    subprocess.exited,
-    new Response(subprocess.stderr).text(),
-    new Response(subprocess.stdout).text(),
-  ])
-
-  return { exitCode, stderr, stdout }
+  try {
+    const subprocess = Bun.spawn([...command], {
+      cwd: options.cwd,
+      env: options.env,
+      stderr: "pipe",
+      stdout: "pipe",
+    })
+    const [exitCode, stderr, stdout] = await Promise.all([
+      subprocess.exited,
+      new Response(subprocess.stderr).text(),
+      new Response(subprocess.stdout).text(),
+    ])
+    // Never log the environment or stdout: they may hold secrets or the patch.
+    if (exitCode !== 0 && options.logFailures === true) {
+      console.error("[cterm.diff] command failed", {
+        command,
+        exitCode,
+        signal: subprocess.signalCode,
+        stderr: stderr.slice(0, 4096),
+      })
+    }
+    return { exitCode, stderr, stdout }
+  } catch (error) {
+    if (options.logFailures === true) {
+      console.error("[cterm.diff] command threw", { command, error })
+    }
+    throw error
+  }
 }
 
 /** Resolve the working directory of the tmux pane backing the web terminal. */
@@ -88,7 +105,7 @@ const prepareDiffIndex = async (
 
   await runCommand(
     ["git", "-C", repositoryPath, "add", "--intent-to-add", "--all"],
-    { env: { ...process.env, GIT_INDEX_FILE: indexFile } }
+    { env: { ...process.env, GIT_INDEX_FILE: indexFile }, logFailures: true }
   )
 
   return { directory, indexFile }
@@ -145,6 +162,7 @@ export const gitDiffResponse = async (directory: string): Promise<Response> => {
 
     const diff = await runCommand(diffArguments, {
       env: { ...process.env, GIT_INDEX_FILE: indexFile },
+      logFailures: true,
     })
     if (diff.exitCode !== 0) {
       return Response.json(
