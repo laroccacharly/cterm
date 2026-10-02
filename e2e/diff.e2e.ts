@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test"
+import { expect, test } from "./fixtures.ts"
 
 const patch = `diff --git a/src/example.ts b/src/example.ts
 index 3b18e51..af2e8cd 100644

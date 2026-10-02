@@ -1,13 +1,5 @@
-import { expect, test } from "@playwright/test"
-
-import {
-  activeRows,
-  killTestSessions,
-  runInActiveTerminal,
-  sessionTab,
-} from "./helpers.ts"
-
-test.afterAll(killTestSessions)
+import { expect, test } from "./fixtures.ts"
+import { activeRows, runInActiveTerminal, sessionTab } from "./helpers.ts"
 
 test("keeps three terminal sessions open and switches between them", async ({
   page,

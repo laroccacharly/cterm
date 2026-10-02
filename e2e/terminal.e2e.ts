@@ -1,8 +1,5 @@
-import { expect, test } from "@playwright/test"
-
-import { activeRows, killTestSessions, runInActiveTerminal } from "./helpers.ts"
-
-test.afterAll(killTestSessions)
+import { expect, test } from "./fixtures.ts"
+import { activeRows, runInActiveTerminal } from "./helpers.ts"
 
 test("runs commands in ~/Work and keeps the tmux session across reloads", async ({
   page,

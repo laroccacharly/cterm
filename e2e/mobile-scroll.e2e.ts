@@ -1,11 +1,9 @@
 import type { Page } from "@playwright/test"
-import { expect, test } from "@playwright/test"
 
-import { activeRows, killTestSessions, runInActiveTerminal } from "./helpers.ts"
+import { expect, test } from "./fixtures.ts"
+import { activeRows, runInActiveTerminal } from "./helpers.ts"
 
 test.use({ hasTouch: true })
-
-test.afterAll(killTestSessions)
 
 // Playwright has no touch-drag helper, so drive Chrome DevTools Protocol touch
 // events directly. xterm's gesture service listens to document touch events.

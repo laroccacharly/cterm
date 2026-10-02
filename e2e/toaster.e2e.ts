@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test"
+import { expect, test } from "./fixtures.ts"
 
 test("shows an error toast when transcription fails", async ({ page }) => {
   await page.route("**/transcribe", async (route) => {

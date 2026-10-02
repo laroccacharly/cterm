@@ -1,12 +1,11 @@
-import { devices, expect, test } from "@playwright/test"
+import { devices } from "@playwright/test"
 import { Option, Predicate } from "effect"
 
 import { parseClientMessage } from "../src/terminal/protocol.ts"
-import { activeInput, killTestSessions } from "./helpers.ts"
+import { expect, test } from "./fixtures.ts"
+import { activeInput } from "./helpers.ts"
 
 test.use({ ...devices["Pixel 5"] })
-
-test.afterAll(killTestSessions)
 
 test("soft keyboard stays closed until the keyboard button is tapped", async ({
   page,

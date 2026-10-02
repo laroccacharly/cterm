@@ -3,8 +3,6 @@ import path from "node:path"
 
 import type { Locator, Page } from "@playwright/test"
 
-import { terminalSessionCount } from "../src/terminal/sessions.ts"
-
 export const stateDir = path.resolve(process.cwd(), ".playwright")
 
 /** Run tmux against the isolated server used by the Playwright cterm. */
@@ -14,11 +12,12 @@ export const testTmux = (...args: readonly string[]): string =>
     env: { ...process.env, TMUX: "", TMUX_TMPDIR: path.join(stateDir, "tmux") },
   }).stdout
 
-/** Remove the tmux sessions cterm creates for the Playwright server. */
-export const killTestSessions = (): void => {
-  for (let session = 1; session <= terminalSessionCount; session += 1) {
-    testTmux("kill-session", "-t", `cterm-e2e-${session}`)
-  }
+/**
+ * Stop the Playwright tmux server, dropping its sessions and any global
+ * options a test set. cterm starts a fresh server on the next connection.
+ */
+export const killTestTmuxServer = (): void => {
+  testTmux("kill-server")
 }
 
 /** The scrollback of the terminal session that is currently visible. */

@@ -14,6 +14,21 @@ export interface TerminalOptions {
   readonly workingDirectory: string
 }
 
+/**
+ * Environment for every tmux command cterm runs. An inherited `TMUX` would
+ * point tmux at the server cterm was launched from, not the one `TMUX_TMPDIR`
+ * selects, so session commands could target the wrong server.
+ */
+const tmuxEnvironment = () => {
+  const environment = {
+    ...process.env,
+    COLORTERM: "truecolor",
+    TERM: "xterm-256color",
+  }
+  Reflect.deleteProperty(environment, "TMUX")
+  return environment
+}
+
 const closeTerminal = (data: TerminalSocketData): void => {
   const { process: subprocess, terminal } = data
 
@@ -78,18 +93,21 @@ export const terminalWebSocket = (
           options.baseSessionName,
           socket.data.sessionNumber ?? 1
         )
-        Bun.spawn([
-          "tmux",
-          "set-option",
-          "-t",
-          sessionName,
-          "detach-on-destroy",
-          "on",
-          ";",
-          "kill-session",
-          "-t",
-          sessionName,
-        ])
+        Bun.spawn(
+          [
+            "tmux",
+            "set-option",
+            "-t",
+            sessionName,
+            "detach-on-destroy",
+            "on",
+            ";",
+            "kill-session",
+            "-t",
+            sessionName,
+          ],
+          { env: tmuxEnvironment() }
+        )
         return
       }
       default: {
@@ -100,13 +118,6 @@ export const terminalWebSocket = (
   },
   open(socket) {
     try {
-      const environment = {
-        ...process.env,
-        COLORTERM: "truecolor",
-        TERM: "xterm-256color",
-      }
-      Reflect.deleteProperty(environment, "TMUX")
-
       const terminal = new Bun.Terminal({
         cols: 80,
         data(_terminal, output) {
@@ -132,7 +143,7 @@ export const terminalWebSocket = (
         ],
         {
           cwd: options.workingDirectory,
-          env: environment,
+          env: tmuxEnvironment(),
           onExit() {
             if (!terminal.closed) {
               terminal.close()

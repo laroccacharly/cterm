@@ -1,7 +1,7 @@
-import { expect, test } from "@playwright/test"
 import { Schema } from "effect"
 
 import { CommandsResponseSchema, commands } from "../src/commands/commands.ts"
+import { expect, test } from "./fixtures.ts"
 import { activeRows } from "./helpers.ts"
 
 const decodeCommandsResponse = Schema.decodeUnknownSync(CommandsResponseSchema)

@@ -1,18 +1,14 @@
 import { mkdirSync, writeFileSync } from "node:fs"
 import path from "node:path"
 
-import { expect, test } from "@playwright/test"
-
+import { expect, test } from "./fixtures.ts"
 import {
   activeRows,
-  killTestSessions,
   runInActiveTerminal,
   sessionTab,
   stateDir,
   testTmux,
 } from "./helpers.ts"
-
-test.afterAll(killTestSessions)
 
 const rcFile = path.join(stateDir, "reset-bashrc")
 
