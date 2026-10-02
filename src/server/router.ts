@@ -153,8 +153,8 @@ export const createHttpHandler = ({
 
   const commandsRoute = HttpRouter.route("GET", "/commands", () =>
     Effect.gen(function* commandsRouteHandler() {
-      const vetted = yield* models.list()
-      return noStore(commandsHttpResponse(commandCatalogue(commands, vetted)))
+      const scoped = yield* models.list()
+      return noStore(commandsHttpResponse(commandCatalogue(commands, scoped)))
     }).pipe(
       Effect.catchTag("ModelsError", () =>
         Effect.succeed(
@@ -162,7 +162,7 @@ export const createHttpHandler = ({
             jsonError(
               500,
               "commands_failed",
-              "Could not read the vetted model list"
+              "Could not read pi's scoped model list"
             )
           )
         )

@@ -158,8 +158,8 @@ export class VoiceCommandSelector extends Context.Service<
       const models = yield* ModelsStore
       return VoiceCommandSelector.of({
         select: (transcript) =>
-          Effect.gen(function* selectWithVettedModels() {
-            const vetted = yield* models.list().pipe(
+          Effect.gen(function* selectWithScopedModels() {
+            const scoped = yield* models.list().pipe(
               Effect.mapError(
                 (cause) =>
                   new VoiceCommandSelectionError({
@@ -171,7 +171,7 @@ export class VoiceCommandSelector extends Context.Service<
 
             return yield* selectVoiceCommand(
               transcript,
-              commandCatalogue(commands, vetted)
+              commandCatalogue(commands, scoped)
             ).pipe(Effect.provideService(Credentials, credentials))
           }),
       })

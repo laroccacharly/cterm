@@ -94,13 +94,9 @@ describe.skipIf(!hasOpenRouterApiKey)(
       expect(Option.isNone(command)).toBe(true)
     }, 120_000)
 
-    test("picks a vetted model command from a spoken model name", async () => {
+    test("picks a scoped model command from a spoken model name", async () => {
       const catalogue = commandCatalogue(commands, [
-        {
-          aliases: ["sol"],
-          id: "openai-codex/gpt-5.6-sol",
-          name: "GPT-5.6 Sol",
-        },
+        { id: "openai-codex/gpt-5.6-sol", name: "gpt-5.6-sol" },
       ])
       const command = await Effect.runPromise(
         selectVoiceCommand("switch me over to sol", catalogue).pipe(

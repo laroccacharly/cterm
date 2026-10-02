@@ -7,49 +7,67 @@ import {
   commandCatalogue,
   modelCommand,
   modelCommandId,
-  ModelsFileSchema,
+  parseScopedModel,
+  PiSettingsSchema,
+  scopedModels,
 } from "../../src/models/models.ts"
 
-const decodeModels = Schema.decodeUnknownSync(
-  Schema.fromJsonString(ModelsFileSchema)
+const decodeSettings = Schema.decodeUnknownSync(
+  Schema.fromJsonString(PiSettingsSchema)
 )
 
-describe("ModelsFileSchema", () => {
-  test("defaults missing fields", () => {
-    expect(decodeModels("{}")).toEqual({ models: [] })
-    expect(
-      decodeModels(
-        '{"models":[{"id":"openai-codex/gpt-5.6-sol","name":"Sol"}]}'
-      )
-    ).toEqual({
-      models: [{ aliases: [], id: "openai-codex/gpt-5.6-sol", name: "Sol" }],
+describe("PiSettingsSchema", () => {
+  test("defaults a missing enabledModels and ignores other settings", () => {
+    expect(decodeSettings('{"theme":"dark"}')).toEqual({ enabledModels: [] })
+  })
+})
+
+describe("parseScopedModel", () => {
+  test("names a model after its id without the provider", () => {
+    expect(parseScopedModel("openai-codex/gpt-6.1-sol")).toEqual({
+      id: "openai-codex/gpt-6.1-sol",
+      name: "gpt-6.1-sol",
     })
   })
 
-  test("keeps aliases and rejects empty ids", () => {
-    const decoded = decodeModels(
-      '{"models":[{"id":"openai-codex/gpt-6-astra","name":"Astra","aliases":["astra"],"thinkingLevel":"high"}]}'
-    )
-    expect(decoded.models[0]?.aliases).toEqual(["astra"])
-    expect(decoded.models[0]?.thinkingLevel).toBe("high")
-    expect(() => decodeModels('{"models":[{"id":"","name":"Bad"}]}')).toThrow()
+  test("drops a :thinking suffix from the id", () => {
+    expect(
+      parseScopedModel("openrouter/deepseek/deepseek-v4.1-flash:high")
+    ).toEqual({
+      id: "openrouter/deepseek/deepseek-v4.1-flash",
+      name: "deepseek-v4.1-flash",
+    })
   })
 
-  test("rejects an unknown thinking level", () => {
-    expect(() =>
-      decodeModels(
-        '{"models":[{"id":"openai-codex/gpt-6-astra","name":"Astra","thinkingLevel":"turbo"}]}'
-      )
-    ).toThrow()
+  test("keeps a colon that is not a thinking level", () => {
+    expect(parseScopedModel("ollama/qwen3:8b")?.id).toBe("ollama/qwen3:8b")
+  })
+
+  test("skips globs and blank patterns", () => {
+    expect(parseScopedModel("anthropic/*")).toBeUndefined()
+    expect(parseScopedModel("  ")).toBeUndefined()
+  })
+})
+
+describe("scopedModels", () => {
+  test("keeps pi's order and drops patterns it cannot switch to", () => {
+    const models = scopedModels({
+      enabledModels: [
+        "claude-bridge/claude-opus-5-5",
+        "openai/*",
+        "openai-codex/gpt-6.1-sol:low",
+      ],
+    })
+
+    expect(models.map(({ id }) => id)).toEqual([
+      "claude-bridge/claude-opus-5-5",
+      "openai-codex/gpt-6.1-sol",
+    ])
   })
 })
 
 describe("modelCommand", () => {
-  const sol = {
-    aliases: ["sol", "the sun"],
-    id: "openai-codex/gpt-5.6-sol",
-    name: "GPT-5.6 Sol",
-  }
+  const sol = { id: "openai-codex/gpt-5.6-sol", name: "gpt-5.6-sol" }
 
   test("types pi's /model slash command under a namespaced id", () => {
     const command = modelCommand(sol)
@@ -62,23 +80,11 @@ describe("modelCommand", () => {
     expect(commands.map(({ id }) => id)).not.toContain(command.id)
   })
 
-  test("describes the model by name and every alias so voice can match it", () => {
+  test("describes the model by name and id so voice can match it", () => {
     const { description, label } = modelCommand(sol)
 
     expect(label).toContain(sol.name)
-    for (const word of [sol.name, ...sol.aliases]) {
-      expect(description).toContain(word)
-    }
-  })
-
-  test("follows /model with /thinking when a level is pinned", () => {
-    const command = modelCommand({ ...sol, thinkingLevel: "high" })
-
-    expect(command.action).toEqual({
-      data: "/model openai-codex/gpt-5.6-sol\r/thinking high\r",
-      type: "input",
-    })
-    expect(command.description).toContain("high")
+    expect(description).toContain(sol.id)
   })
 })
 
@@ -86,9 +92,8 @@ describe("commandCatalogue", () => {
   test("appends model commands after the static commands", () => {
     const catalogue = commandCatalogue(commands, [
       {
-        aliases: [],
         id: "openrouter/deepseek/deepseek-v4.1-flash",
-        name: "DeepSeek V4.1 Flash",
+        name: "deepseek-v4.1-flash",
       },
     ])
 

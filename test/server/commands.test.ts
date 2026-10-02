@@ -40,9 +40,9 @@ describe("Commands endpoint", () => {
     }
   })
 
-  test("serves vetted models alongside the static commands", async () => {
+  test("serves scoped models alongside the static commands", async () => {
     const catalogue = commandCatalogue(commands, [
-      { aliases: ["sol"], id: "openai-codex/gpt-5.6-sol", name: "GPT-5.6 Sol" },
+      { id: "openai-codex/gpt-5.6-sol", name: "gpt-5.6-sol" },
     ])
     const response = HttpServerResponse.toWeb(commandsHttpResponse(catalogue))
     const payload = decodeCommandsResponse(await response.json())

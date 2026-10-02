@@ -13,5 +13,9 @@ export const ctermConfigDir = path.join(configHome, "cterm")
 /** Path to cterm's configuration file. */
 export const configPath = path.join(ctermConfigDir, "config.json")
 
-/** Path to cterm's vetted pi model list. */
-export const modelsPath = path.join(ctermConfigDir, "models.json")
+/** pi's agent directory (`PI_CODING_AGENT_DIR`, falling back to `~/.pi/agent`). */
+export const piAgentDir =
+  process.env.PI_CODING_AGENT_DIR ?? path.join(home, ".pi", "agent")
+
+/** pi's global settings, whose `enabledModels` are the scoped models. */
+export const piSettingsPath = path.join(piAgentDir, "settings.json")
