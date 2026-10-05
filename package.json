@@ -25,6 +25,7 @@
     "@xterm/addon-web-links": "0.13.0-beta.301",
     "@xterm/xterm": "6.1.0-beta.304",
     "effect": "4.0.0",
+    "effect-lib": "github:laroccacharly/effect-lib#v0.7.0",
     "qrcode": "^1.5.4",
     "react": "^19.3.0",
     "react-dom": "^19.3.0"

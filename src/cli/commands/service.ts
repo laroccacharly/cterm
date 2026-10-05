@@ -1,67 +1,24 @@
-import { Console, Effect } from "effect"
-import { CliError, Command } from "effect/cli"
+import path from "node:path"
 
-import {
-  install,
-  reinstall,
-  status,
-  unitName,
-  uninstall,
-} from "../../service/systemd.ts"
+import { serviceCommand as systemdServiceCommand } from "effect-lib/systemd"
 
-const installCommand = Command.make(
-  "install",
-  {},
-  Effect.fn("serviceInstallCommand")(function* serviceInstallCommand() {
-    yield* install()
-  })
-).pipe(
-  Command.withDescription("Install and start the cterm systemd user service")
-)
+const repoRoot = path.resolve(import.meta.dir, "../../..")
 
-const statusCommand = Command.make(
-  "status",
-  {},
-  Effect.fn("serviceStatusCommand")(function* serviceStatusCommand() {
-    const { output, running } = yield* status()
-
-    yield* Console.log(output)
-
-    if (!running) {
-      yield* new CliError.UserError({
-        cause: new Error(output),
-        userMessage: `${unitName} is not running`,
-      })
-    }
-  })
-).pipe(Command.withDescription("Show the cterm service status"))
-
-const reinstallCommand = Command.make(
-  "reinstall",
-  {},
-  Effect.fn("serviceReinstallCommand")(function* serviceReinstallCommand() {
-    yield* reinstall()
-  })
-).pipe(
-  Command.withDescription("Rewrite the unit file and restart the cterm service")
-)
-
-const uninstallCommand = Command.make(
-  "uninstall",
-  {},
-  Effect.fn("serviceUninstallCommand")(function* serviceUninstallCommand() {
-    yield* uninstall()
-  })
-).pipe(
-  Command.withDescription("Stop and remove the cterm systemd user service")
-)
-
-export const serviceCommand = Command.make("service").pipe(
-  Command.withDescription("Manage the cterm systemd user service"),
-  Command.withSubcommands([
-    installCommand,
-    statusCommand,
-    reinstallCommand,
-    uninstallCommand,
-  ])
-)
+/** `cterm serve` as a systemd user service, started at login. */
+export const serviceCommand = systemdServiceCommand({
+  name: "cterm",
+  description: "cterm private tailnet web terminal",
+  script: path.join(repoRoot, "src", "cli", "index.ts"),
+  args: ["serve"],
+  restart: "always",
+  restartSec: 5,
+  extra: {
+    unit: { After: "network-online.target", Wants: "network-online.target" },
+    // KillMode=process keeps tmux servers alive when cterm is restarted or upgraded.
+    service: {
+      WorkingDirectory: repoRoot,
+      KillMode: "process",
+      TimeoutStopSec: "15",
+    },
+  },
+})
