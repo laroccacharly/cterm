@@ -41,6 +41,7 @@ export default defineConfig({
     env: {
       CTERM_TMUX_SESSION: "cterm-e2e",
       TMUX_TMPDIR: tmuxDir,
+      XDG_CACHE_HOME: path.join(stateDir, "cache"),
       XDG_CONFIG_HOME: path.join(stateDir, "config"),
     },
     reuseExistingServer: !isCi,

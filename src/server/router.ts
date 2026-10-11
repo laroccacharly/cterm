@@ -6,6 +6,7 @@ import { HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/http"
 import { commands } from "../commands/commands.ts"
 import type { VoiceCommandSelectorService } from "../commands/voice-command.ts"
 import type { CtermConfig } from "../config/config.ts"
+import { uploadsDir } from "../config/paths.ts"
 import { commandCatalogue } from "../models/models.ts"
 import type { ModelsStoreService } from "../models/store.ts"
 import type { TranscriptionService } from "../openrouter/transcription.ts"
@@ -16,6 +17,7 @@ import { healthResponse } from "./health.ts"
 import { jsonError } from "./http.ts"
 import { transcribeResponse } from "./transcribe.ts"
 import { uiDirectory } from "./ui.ts"
+import { uploadResponse } from "./upload.ts"
 import { voiceCommandResponse } from "./voice-command.ts"
 
 const uiRoot = path.resolve(uiDirectory)
@@ -178,6 +180,7 @@ export const createHttpHandler = ({
     guardedPost("/voice-command", (request) =>
       voiceCommandResponse(request, voiceCommandSelector)
     ),
+    guardedPost("/upload", (request) => uploadResponse(request, uploadsDir)),
     commandsRoute,
     diffRoute,
     staticRoute,

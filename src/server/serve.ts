@@ -13,6 +13,7 @@ import type { TerminalSocketData } from "../terminal/socket.ts"
 import { terminalWebSocket } from "../terminal/socket.ts"
 import { createHttpHandler, isSameOrigin } from "./router.ts"
 import { maxAudioBytes } from "./transcribe.ts"
+import { maxUploadBytes } from "./upload.ts"
 
 const securityHeaders = {
   "Content-Security-Policy":
@@ -87,7 +88,7 @@ const makeServer = (
       return withSecurityHeaders(await http.handler(request))
     },
     hostname: "127.0.0.1",
-    maxRequestBodySize: maxAudioBytes,
+    maxRequestBodySize: Math.max(maxAudioBytes, maxUploadBytes),
     port: config.port,
     websocket: terminalWebSocket({
       baseSessionName,

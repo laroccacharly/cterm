@@ -506,6 +506,7 @@ button {
 .new-session-button,
 .control-c-button,
 .paste-button,
+.attach-button,
 .escape-button,
 .cd-button,
 .arrow-button,
@@ -542,6 +543,7 @@ button {
   line-height: 1;
 }
 
+.attach-button svg,
 .keyboard-button svg {
   width: 20px;
   height: 20px;
@@ -558,6 +560,7 @@ button {
 .new-session-button:hover,
 .control-c-button:hover,
 .paste-button:hover,
+.attach-button:hover,
 .escape-button:hover,
 .cd-button:hover,
 .arrow-button:hover,
@@ -573,6 +576,7 @@ button {
 .new-session-button:focus-visible,
 .control-c-button:focus-visible,
 .paste-button:focus-visible,
+.attach-button:focus-visible,
 .escape-button:focus-visible,
 .cd-button:focus-visible,
 .arrow-button:focus-visible,
@@ -587,6 +591,7 @@ button {
 .new-session-button:active,
 .control-c-button:active,
 .paste-button:active,
+.attach-button:active,
 .escape-button:active,
 .cd-button:active,
 .arrow-button:active,
@@ -698,6 +703,69 @@ button {
 
 .toast__close:hover {
   opacity: 1;
+}
+
+.attach-button:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}
+
+.upload-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  border: 2px dashed #82aaff;
+  border-radius: 14px;
+  color: #e7eef7;
+  background: #1a1b26d9;
+  font-size: 16px;
+  font-weight: 650;
+  place-items: center;
+  pointer-events: none;
+}
+
+.upload-dialog {
+  gap: 16px;
+}
+
+.upload-drop-zone {
+  position: relative;
+  display: grid;
+  min-height: 140px;
+  padding: 20px;
+  border: 1px dashed #53647a;
+  border-radius: 12px;
+  color: #c8d1dc;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 650;
+  gap: 6px;
+  place-content: center;
+  text-align: center;
+  transition:
+    border-color 120ms ease,
+    background 120ms ease;
+}
+
+.upload-drop-zone:hover,
+.upload-drop-zone:focus-within,
+.upload-drop-zone--active {
+  border-color: #82aaff;
+  background: #82aaff14;
+}
+
+.upload-drop-zone__hint {
+  color: #8290a5;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.upload-drop-zone__input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
 }
 
 @keyframes toast-in {
@@ -868,6 +936,7 @@ button {
   .new-session-button,
   .control-c-button,
   .paste-button,
+  .attach-button,
   .escape-button,
   .cd-button,
   .arrow-button,

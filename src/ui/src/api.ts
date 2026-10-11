@@ -5,6 +5,10 @@ import { DiffResponseSchema } from "../../api/diff.ts"
 import type { DiffResponse } from "../../api/diff.ts"
 import { ApiError, ApiErrorSchema } from "../../api/error.ts"
 import { TranscriptionResponseSchema } from "../../api/transcription.ts"
+import {
+  uploadFilenameHeader,
+  UploadResponseSchema,
+} from "../../api/upload.ts"
 import { VoiceCommandResponseSchema } from "../../api/voice-command.ts"
 import { CommandsResponseSchema } from "../../commands/commands.ts"
 import type { Command, CommandsResponse } from "../../commands/commands.ts"
@@ -98,6 +102,38 @@ export const transcribeAudio = (
     )(response).pipe(Effect.mapError(unexpected))
     return result.text
   })
+
+const uploadFile = (
+  file: File
+): Effect.Effect<string, ApiError, HttpClient.HttpClient> =>
+  Effect.gen(function* uploadFileEffect() {
+    const data = yield* Effect.tryPromise({
+      catch: (cause) =>
+        new ApiError({ cause, message: `Could not read ${file.name}` }),
+      try: async () => new Uint8Array(await file.arrayBuffer()),
+    })
+    const request = HttpClientRequest.post(url("/upload")).pipe(
+      HttpClientRequest.setHeader(
+        uploadFilenameHeader,
+        encodeURIComponent(file.name)
+      ),
+      HttpClientRequest.bodyUint8Array(
+        data,
+        file.type || "application/octet-stream"
+      )
+    )
+    const response = yield* execute(request)
+    const result = yield* HttpClientResponse.schemaBodyJson(
+      UploadResponseSchema
+    )(response).pipe(Effect.mapError(unexpected))
+    return result.path
+  })
+
+/** Save files on the cterm host and return their absolute paths, in order. */
+export const uploadFiles = (
+  files: readonly File[]
+): Effect.Effect<readonly string[], ApiError, HttpClient.HttpClient> =>
+  Effect.forEach(files, uploadFile, { concurrency: 4 })
 
 /** Ask the server (and jev) to pick a supported command for a spoken transcript. */
 export const selectVoiceCommand = (

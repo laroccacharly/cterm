@@ -1,5 +1,5 @@
 import { useAtomSet } from "@effect/atom-react"
-import { lazy, Suspense, useState } from "react"
+import { lazy, Suspense, useCallback, useState } from "react"
 
 import { transcribeAtom } from "./atoms.ts"
 import { CommandsView } from "./commands/commands-view.tsx"
@@ -7,9 +7,11 @@ import { AppHeader } from "./components/app-header.tsx"
 import { SessionTabs } from "./components/session-tabs.tsx"
 import { TerminalView } from "./components/terminal-view.tsx"
 import { useToaster } from "./components/toaster.tsx"
+import { UploadDialog } from "./components/upload-dialog.tsx"
 import type { View } from "./components/view-switcher.tsx"
 import { useRecorder } from "./hooks/use-recorder.ts"
 import { useTerminalSessions } from "./hooks/use-terminal-sessions.ts"
+import { useUploads } from "./hooks/use-uploads.ts"
 import { Shortcuts } from "./shortcuts/shortcuts.tsx"
 
 const DiffView = lazy(async () => {
@@ -30,6 +32,31 @@ export const App = () => {
     onTranscript: terminal.sendInput,
     transcribe,
   })
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false)
+  const { paste } = terminal
+  const pastePaths = useCallback(
+    (paths: readonly string[]) => {
+      setUploadDialogOpen(false)
+      paste(`${paths.join(" ")} `)
+    },
+    [paste]
+  )
+  const uploads = useUploads({
+    enabled: view === "terminal",
+    onError: toaster.error,
+    onPaths: pastePaths,
+  })
+  const closeUploadDialog = useCallback(() => {
+    setUploadDialogOpen(false)
+  }, [])
+  const { upload } = uploads
+  const uploadFiles = useCallback(
+    (files: readonly File[]) => {
+      setUploadDialogOpen(false)
+      void upload(files)
+    },
+    [upload]
+  )
 
   let controls = null
   if (view === "terminal") {
@@ -37,10 +64,14 @@ export const App = () => {
       <Shortcuts
         isTouchDevice={terminal.isTouchDevice}
         keyboardActive={terminal.keyboardActive}
+        onAttach={() => {
+          setUploadDialogOpen(true)
+        }}
         onPaste={terminal.paste}
         onSend={terminal.sendInput}
         onToggleKeyboard={terminal.toggleKeyboard}
         recorder={recorder}
+        uploading={uploads.uploading}
       />
     )
   } else if (view === "diff") {
@@ -97,7 +128,19 @@ export const App = () => {
             />
           </Suspense>
         ) : null}
+        {view === "terminal" && uploads.dragging && !uploadDialogOpen ? (
+          <div aria-hidden="true" className="upload-overlay">
+            Drop files to paste their paths
+          </div>
+        ) : null}
       </div>
+      {view === "terminal" && uploadDialogOpen ? (
+        <UploadDialog
+          dragging={uploads.dragging}
+          onClose={closeUploadDialog}
+          onFiles={uploadFiles}
+        />
+      ) : null}
     </main>
   )
 }

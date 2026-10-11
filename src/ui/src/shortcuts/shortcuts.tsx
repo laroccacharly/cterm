@@ -4,10 +4,12 @@ import type { Recorder, RecorderState } from "../hooks/use-recorder.ts"
 interface ShortcutsProps {
   readonly isTouchDevice: boolean
   readonly keyboardActive: boolean
+  readonly onAttach: () => void
   readonly onPaste: (data: string) => void
   readonly onSend: (data: string) => void
   readonly onToggleKeyboard: () => void
   readonly recorder: Recorder
+  readonly uploading: boolean
 }
 
 const recorderLabel = (state: RecorderState) => {
@@ -113,10 +115,12 @@ const SendButton = ({ onSend, shortcut }: SendButtonProps) => (
 export const Shortcuts = ({
   isTouchDevice,
   keyboardActive,
+  onAttach,
   onPaste,
   onSend,
   onToggleKeyboard,
   recorder,
+  uploading,
 }: ShortcutsProps) => {
   const toaster = useToaster()
 
@@ -189,6 +193,19 @@ export const Shortcuts = ({
         type="button"
       >
         <span aria-hidden="true">Paste</span>
+      </button>
+      <button
+        aria-label={uploading ? "Uploading files" : "Attach files"}
+        className="attach-button"
+        disabled={uploading}
+        onClick={onAttach}
+        onMouseDown={preventFocusSteal}
+        title={uploading ? "Uploading files" : "Attach files"}
+        type="button"
+      >
+        <svg aria-hidden="true" viewBox="0 0 24 24">
+          <path d="M16.5 6.5v10.5a4.5 4.5 0 0 1-9 0V5.5a3 3 0 0 1 6 0V16a1.5 1.5 0 0 1-3 0V6.5H9V16a3 3 0 0 0 6 0V5.5a4.5 4.5 0 0 0-9 0V17a6 6 0 0 0 12 0V6.5h-1.5Z" />
+        </svg>
       </button>
       <SendButton onSend={onSend} shortcut={escapeShortcut} />
     </div>

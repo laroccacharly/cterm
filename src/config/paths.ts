@@ -7,6 +7,12 @@ export const home = process.env.HOME ?? process.cwd()
 export const configHome =
   process.env.XDG_CONFIG_HOME ?? path.join(home, ".config")
 
+/** Base directory for user caches (`XDG_CACHE_HOME`, falling back to `~/.cache`). */
+export const cacheHome = process.env.XDG_CACHE_HOME ?? path.join(home, ".cache")
+
+/** Where files dropped or pasted into the UI are saved for the terminal. */
+export const uploadsDir = path.join(cacheHome, "cterm", "uploads")
+
 /** Directory holding cterm's own configuration. */
 export const ctermConfigDir = path.join(configHome, "cterm")
 

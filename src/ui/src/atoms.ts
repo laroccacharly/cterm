@@ -7,6 +7,7 @@ import {
   fetchCurrentDiff,
   selectVoiceCommand,
   transcribeAudio,
+  uploadFiles,
 } from "./api.ts"
 
 /** Effect runtime shared by every client atom. */
@@ -32,6 +33,11 @@ export const diffAtom = Atom.family((session: number) =>
 /** Transcribe one recorded clip. */
 export const transcribeAtom = appRuntime.fn((audio: Blob) =>
   transcribeAudio(audio)
+)
+
+/** Save files on the cterm host, resolving to their absolute paths. */
+export const uploadAtom = appRuntime.fn((files: readonly File[]) =>
+  uploadFiles(files)
 )
 
 /** Ask jev to pick a supported command for a spoken transcript. */
