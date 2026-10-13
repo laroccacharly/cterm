@@ -1,8 +1,13 @@
 import path from "node:path"
 
 import { Context, Effect, FileSystem, Layer, Option, Schema } from "effect"
+import * as JsonStore from "effect-lib/json-store"
 
-import { configPath, ctermConfigDir, home } from "./paths.ts"
+import {
+  TranscriptionModelSchema,
+  transcriptionModels,
+} from "../api/transcription.ts"
+import { configPath, home } from "./paths.ts"
 
 export const defaultTailscalePort = 8444
 
@@ -18,6 +23,7 @@ export const defaultConfig = {
   port: 3001,
   sessionName: "cterm",
   tailscalePort: defaultTailscalePort,
+  transcriptionModel: transcriptionModels[0],
   workingDirectory: path.join(home, "Work"),
 } as const
 
@@ -30,6 +36,9 @@ export const CtermConfigSchema = Schema.Struct({
   tailscalePort: Port.pipe(
     Schema.withDecodingDefault(Effect.succeed(defaultTailscalePort))
   ),
+  transcriptionModel: TranscriptionModelSchema.pipe(
+    Schema.withDecodingDefault(Effect.succeed(defaultConfig.transcriptionModel))
+  ),
   workingDirectory: WorkingDirectory.pipe(
     Schema.withDecodingDefault(Effect.succeed(defaultConfig.workingDirectory))
   ),
@@ -37,12 +46,9 @@ export const CtermConfigSchema = Schema.Struct({
 
 export type CtermConfig = typeof CtermConfigSchema.Type
 
-/** Fields that `cterm config update` may patch. */
-export interface CtermConfigPatch {
-  port?: number
-  sessionName?: string
-  tailscalePort?: number
-  workingDirectory?: string
+/** Fields that `cterm config update` and the UI may patch. */
+export type CtermConfigPatch = {
+  -readonly [K in keyof CtermConfig]?: CtermConfig[K]
 }
 
 /** Raised when cterm's configuration cannot be read or written. */
@@ -54,113 +60,81 @@ export class ConfigError extends Schema.TaggedError<ConfigError>()(
   }
 ) {}
 
-const decodeConfig = Schema.decodeUnknownEffect(
-  Schema.fromJsonString(CtermConfigSchema)
-)
+const storeError = (error: JsonStore.JsonStoreError): ConfigError =>
+  new ConfigError({ cause: error, detail: error.message })
 
-const encodeConfig = Schema.encodeUnknownEffect(
-  Schema.fromJsonString(CtermConfigSchema)
-)
+const validate = Schema.decodeUnknownEffect(CtermConfigSchema)
 
-/** Reads and persists cterm's configuration. */
-export class Config extends Context.Service<
-  Config,
-  {
-    readonly get: () => Effect.Effect<CtermConfig, ConfigError>
-    readonly resolve: <K extends keyof CtermConfig>(
-      key: K,
-      override: Option.Option<CtermConfig[K]>
-    ) => Effect.Effect<CtermConfig[K], ConfigError>
-    readonly update: (
-      patch: CtermConfigPatch
-    ) => Effect.Effect<CtermConfig, ConfigError>
+export interface ConfigService {
+  /** The saved configuration, or the defaults before anything was saved. */
+  readonly get: Effect.Effect<CtermConfig, ConfigError>
+  /** A command-line override, falling back to the saved value. */
+  readonly resolve: <K extends keyof CtermConfig>(
+    key: K,
+    override: Option.Option<CtermConfig[K]>
+  ) => Effect.Effect<CtermConfig[K], ConfigError>
+  /** Merge a patch into the configuration and persist it. */
+  readonly update: (
+    patch: CtermConfigPatch
+  ) => Effect.Effect<CtermConfig, ConfigError>
+}
+
+/**
+ * cterm's configuration, the single source every command and the server
+ * read. It is read on each access, so changes apply without a restart.
+ */
+export class Config extends Context.Service<Config, ConfigService>()(
+  "cterm/config/Config"
+) {
+  /** Builds a config backed by a specific file (used by tests). */
+  static layerAt(
+    filePath: string
+  ): Layer.Layer<Config, never, FileSystem.FileSystem> {
+    return Layer.effect(
+      Config,
+      Effect.gen(function* configLayer() {
+        const fs = yield* FileSystem.FileSystem
+        const store = JsonStore.make(filePath, CtermConfigSchema)
+
+        const get = store.load.pipe(
+          Effect.map(Option.getOrElse((): CtermConfig => defaultConfig)),
+          Effect.mapError(storeError),
+          Effect.provideService(FileSystem.FileSystem, fs),
+          Effect.withSpan("Config.get")
+        )
+
+        const update = Effect.fn("Config.update")(function* update(
+          patch: CtermConfigPatch
+        ) {
+          const next = yield* validate({ ...(yield* get), ...patch }).pipe(
+            Effect.mapError(
+              (cause) =>
+                new ConfigError({ cause, detail: "validate configuration" })
+            )
+          )
+          yield* store
+            .save(next)
+            .pipe(
+              Effect.mapError(storeError),
+              Effect.provideService(FileSystem.FileSystem, fs)
+            )
+          return next
+        })
+
+        const resolve = <K extends keyof CtermConfig>(
+          key: K,
+          override: Option.Option<CtermConfig[K]>
+        ) =>
+          Option.match(override, {
+            onNone: () => get.pipe(Effect.map((current) => current[key])),
+            onSome: Effect.succeed,
+          })
+
+        return Config.of({ get, resolve, update })
+      })
+    )
   }
->()("cterm/config/Config") {
-  static readonly layer = Layer.effect(
-    Config,
-    Effect.gen(function* configLayer() {
-      const fs = yield* FileSystem.FileSystem
 
-      const get = Effect.fn("Config.get")(function* get() {
-        const exists = yield* fs
-          .exists(configPath)
-          .pipe(
-            Effect.mapError(
-              (cause) =>
-                new ConfigError({ cause, detail: `read ${configPath}` })
-            )
-          )
-
-        if (!exists) {
-          return defaultConfig
-        }
-
-        const raw = yield* fs
-          .readFileString(configPath)
-          .pipe(
-            Effect.mapError(
-              (cause) =>
-                new ConfigError({ cause, detail: `read ${configPath}` })
-            )
-          )
-
-        return yield* decodeConfig(raw).pipe(
-          Effect.mapError(
-            (cause) => new ConfigError({ cause, detail: `parse ${configPath}` })
-          )
-        )
-      })
-
-      const update = Effect.fn("Config.update")(function* update(
-        patch: CtermConfigPatch
-      ) {
-        const current = yield* get()
-        const next = { ...current, ...patch }
-        const validated = yield* Schema.decodeUnknownEffect(CtermConfigSchema)(
-          next
-        ).pipe(
-          Effect.mapError(
-            (cause) =>
-              new ConfigError({ cause, detail: "validate configuration" })
-          )
-        )
-
-        yield* fs
-          .makeDirectory(ctermConfigDir, { recursive: true })
-          .pipe(
-            Effect.mapError(
-              (cause) =>
-                new ConfigError({ cause, detail: `create ${ctermConfigDir}` })
-            )
-          )
-
-        const raw = yield* encodeConfig(validated).pipe(
-          Effect.mapError(
-            (cause) =>
-              new ConfigError({ cause, detail: `encode ${configPath}` })
-          )
-        )
-
-        yield* fs
-          .writeFileString(configPath, `${raw}\n`)
-          .pipe(
-            Effect.mapError(
-              (cause) =>
-                new ConfigError({ cause, detail: `write ${configPath}` })
-            )
-          )
-
-        return validated
-      })
-
-      const resolve = Effect.fn("Config.resolve")(function* resolve<
-        K extends keyof CtermConfig,
-      >(key: K, override: Option.Option<CtermConfig[K]>) {
-        const current = yield* get()
-        return Option.getOrElse(override, () => current[key])
-      })
-
-      return Config.of({ get, resolve, update })
-    })
-  )
+  static readonly layer: Layer.Layer<Config, never, FileSystem.FileSystem> =
+    Config.layerAt(configPath)
 }

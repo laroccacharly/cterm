@@ -1,17 +1,15 @@
 import { Effect, Layer, Schema } from "effect"
 
 import { VoiceCommandSelector } from "../commands/voice-command.ts"
-import type { VoiceCommandSelectorService } from "../commands/voice-command.ts"
-import type { CtermConfig } from "../config/config.ts"
+import { Config } from "../config/config.ts"
 import { Credentials } from "../credentials/credentials.ts"
 import { ModelsStore } from "../models/store.ts"
-import type { ModelsStoreService } from "../models/store.ts"
-import type { TranscriptionService } from "../openrouter/transcription.ts"
 import { Transcription } from "../openrouter/transcription.ts"
 import { parseSessionNumber } from "../terminal/sessions.ts"
 import type { TerminalSocketData } from "../terminal/socket.ts"
 import { terminalWebSocket } from "../terminal/socket.ts"
 import { createHttpHandler, isSameOrigin } from "./router.ts"
+import type { HttpHandlerOptions } from "./router.ts"
 import { maxAudioBytes } from "./transcribe.ts"
 import { maxUploadBytes } from "./upload.ts"
 
@@ -45,20 +43,12 @@ interface CtermServer {
   readonly server: Bun.Server<TerminalSocketData>
 }
 
-const makeServer = (
-  config: CtermConfig,
-  transcription: TranscriptionService,
-  voiceCommandSelector: VoiceCommandSelectorService,
-  models: ModelsStoreService
-): CtermServer => {
-  const baseSessionName = process.env.CTERM_TMUX_SESSION ?? config.sessionName
-  const http = createHttpHandler({
-    baseSessionName,
-    config,
-    models,
-    transcription,
-    voiceCommandSelector,
-  })
+interface ServerOptions extends HttpHandlerOptions {
+  readonly port: number
+}
+
+const makeServer = (options: ServerOptions): CtermServer => {
+  const http = createHttpHandler(options)
 
   const server = Bun.serve<TerminalSocketData>({
     async fetch(request, socketServer) {
@@ -89,40 +79,47 @@ const makeServer = (
     },
     hostname: "127.0.0.1",
     maxRequestBodySize: Math.max(maxAudioBytes, maxUploadBytes),
-    port: config.port,
-    websocket: terminalWebSocket({
-      baseSessionName,
-      workingDirectory: config.workingDirectory,
-    }),
+    port: options.port,
+    websocket: terminalWebSocket(options),
   })
 
   return { dispose: http.dispose, server }
 }
 
-const acquireServer = (config: CtermConfig) =>
+const acquireServer = (port: number) =>
   Effect.gen(function* acquireServerEffect() {
-    const transcription = yield* Transcription
-    const voiceCommandSelector = yield* VoiceCommandSelector
-    const models = yield* ModelsStore
+    const config = yield* Config
+    // tmux sessions keep the name and directory they started with, so the
+    // terminal binds them once; HTTP routes read the config per request.
+    const { sessionName, workingDirectory } = yield* config.get
+    const options: ServerOptions = {
+      baseSessionName: process.env.CTERM_TMUX_SESSION ?? sessionName,
+      config,
+      models: yield* ModelsStore,
+      port,
+      transcription: yield* Transcription,
+      voiceCommandSelector: yield* VoiceCommandSelector,
+      workingDirectory,
+    }
     return yield* Effect.try({
       try: () => {
         if (Bun.which("tmux") === null) {
           throw new Error("tmux is required but was not found in PATH")
         }
-        return makeServer(config, transcription, voiceCommandSelector, models)
+        return makeServer(options)
       },
       catch: (cause) =>
         new ServerError({
           cause,
-          detail: `listen on 127.0.0.1:${config.port}`,
+          detail: `listen on 127.0.0.1:${port}`,
         }),
     })
   })
 
 /** Scoped server layer; interruption closes HTTP and all connected terminals. */
-export const serverLayer = (config: CtermConfig) =>
+export const serverLayer = (port: number) =>
   Layer.effectDiscard(
-    Effect.acquireRelease(acquireServer(config), (instance) =>
+    Effect.acquireRelease(acquireServer(port), (instance) =>
       Effect.promise(async () => {
         try {
           await instance.server.stop(true)

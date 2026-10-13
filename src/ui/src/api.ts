@@ -4,11 +4,12 @@ import { HttpClient, HttpClientRequest, HttpClientResponse } from "effect/http"
 import { DiffResponseSchema } from "../../api/diff.ts"
 import type { DiffResponse } from "../../api/diff.ts"
 import { ApiError, ApiErrorSchema } from "../../api/error.ts"
-import { TranscriptionResponseSchema } from "../../api/transcription.ts"
 import {
-  uploadFilenameHeader,
-  UploadResponseSchema,
-} from "../../api/upload.ts"
+  TranscriptionModelBodySchema,
+  TranscriptionResponseSchema,
+} from "../../api/transcription.ts"
+import type { TranscriptionModel } from "../../api/transcription.ts"
+import { uploadFilenameHeader, UploadResponseSchema } from "../../api/upload.ts"
 import { VoiceCommandResponseSchema } from "../../api/voice-command.ts"
 import { CommandsResponseSchema } from "../../commands/commands.ts"
 import type { Command, CommandsResponse } from "../../commands/commands.ts"
@@ -102,6 +103,22 @@ export const transcribeAudio = (
     )(response).pipe(Effect.mapError(unexpected))
     return result.text
   })
+
+/** Switch the speech-to-text model used for every later recording. */
+export const setTranscriptionModel = (
+  model: TranscriptionModel
+): Effect.Effect<TranscriptionModel, ApiError, HttpClient.HttpClient> =>
+  execute(
+    HttpClientRequest.post(url("/transcription-model")).pipe(
+      HttpClientRequest.bodyJsonUnsafe({ model })
+    )
+  ).pipe(
+    Effect.flatMap(
+      HttpClientResponse.schemaBodyJson(TranscriptionModelBodySchema)
+    ),
+    Effect.map((result) => result.model),
+    Effect.mapError(unexpected)
+  )
 
 const uploadFile = (
   file: File

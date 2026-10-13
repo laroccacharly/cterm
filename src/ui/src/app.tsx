@@ -1,7 +1,13 @@
-import { useAtomSet } from "@effect/atom-react"
+import { useAtomRefresh, useAtomSet } from "@effect/atom-react"
 import { lazy, Suspense, useCallback, useState } from "react"
 
-import { transcribeAtom } from "./atoms.ts"
+import type { TranscriptionModel } from "../../api/transcription.ts"
+import { transcriptionModelNames } from "../../api/transcription.ts"
+import {
+  commandsAtom,
+  transcribeAtom,
+  transcriptionModelAtom,
+} from "./atoms.ts"
 import { CommandsView } from "./commands/commands-view.tsx"
 import { AppHeader } from "./components/app-header.tsx"
 import { SessionTabs } from "./components/session-tabs.tsx"
@@ -9,6 +15,7 @@ import { TerminalView } from "./components/terminal-view.tsx"
 import { useToaster } from "./components/toaster.tsx"
 import { UploadDialog } from "./components/upload-dialog.tsx"
 import type { View } from "./components/view-switcher.tsx"
+import { errorMessage } from "./error-message.ts"
 import { useRecorder } from "./hooks/use-recorder.ts"
 import { useTerminalSessions } from "./hooks/use-terminal-sessions.ts"
 import { useUploads } from "./hooks/use-uploads.ts"
@@ -32,6 +39,29 @@ export const App = () => {
     onTranscript: terminal.sendInput,
     transcribe,
   })
+  const switchTranscriptionModel = useAtomSet(transcriptionModelAtom, {
+    mode: "promise",
+  })
+  const refreshCommands = useAtomRefresh(commandsAtom)
+  const setTranscriptionModel = useCallback(
+    (model: TranscriptionModel) => {
+      const run = async () => {
+        try {
+          const next = await switchTranscriptionModel(model)
+          refreshCommands()
+          toaster.info(
+            `Speech-to-text now uses ${transcriptionModelNames[next]}`
+          )
+        } catch (error) {
+          toaster.error(
+            errorMessage(error, "Could not switch the speech-to-text model")
+          )
+        }
+      }
+      void run()
+    },
+    [refreshCommands, switchTranscriptionModel, toaster]
+  )
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false)
   const { paste } = terminal
   const pastePaths = useCallback(
@@ -105,6 +135,7 @@ export const App = () => {
             context={{
               changeFontSize: terminal.changeFontSize,
               sendInput: terminal.sendInput,
+              setTranscriptionModel,
             }}
           />
         ) : null}

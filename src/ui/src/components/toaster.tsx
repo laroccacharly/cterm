@@ -11,13 +11,17 @@ import type { ReactNode } from "react"
 
 const TOAST_DURATION_MS = 5000
 
+type ToastTone = "error" | "info"
+
 interface Toast {
   readonly id: number
   readonly message: string
+  readonly tone: ToastTone
 }
 
 interface Toaster {
   readonly error: (message: string) => void
+  readonly info: (message: string) => void
 }
 
 const ToasterContext = createContext<Toaster | null>(null)
@@ -48,7 +52,10 @@ const ToastItem = ({
   }, [onDismiss, toast.id])
 
   return (
-    <li className="toast toast--error" role="alert">
+    <li
+      className={`toast toast--${toast.tone}`}
+      role={toast.tone === "error" ? "alert" : "status"}
+    >
       <span className="toast__message">{toast.message}</span>
       <button
         aria-label="Dismiss"
@@ -67,7 +74,7 @@ const ToastItem = ({
   )
 }
 
-/** Renders stacked, auto-dismissing error toasts for the whole app. */
+/** Renders stacked, auto-dismissing toasts for the whole app. */
 export const ToasterProvider = ({
   children,
 }: {
@@ -80,19 +87,17 @@ export const ToasterProvider = ({
     setToasts((current) => current.filter((toast) => toast.id !== id))
   }, [])
 
-  const toaster = useMemo<Toaster>(
-    () => ({
-      error: (message) => {
-        nextId.current += 1
-        const id = nextId.current
-        setToasts((current) => [
-          ...current.filter((toast) => toast.message !== message),
-          { id, message },
-        ])
-      },
-    }),
-    []
-  )
+  const toaster = useMemo<Toaster>(() => {
+    const show = (tone: ToastTone) => (message: string) => {
+      nextId.current += 1
+      const id = nextId.current
+      setToasts((current) => [
+        ...current.filter((toast) => toast.message !== message),
+        { id, message, tone },
+      ])
+    }
+    return { error: show("error"), info: show("info") }
+  }, [])
 
   return (
     <ToasterContext.Provider value={toaster}>

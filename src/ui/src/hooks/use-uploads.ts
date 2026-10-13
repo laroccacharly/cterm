@@ -2,6 +2,7 @@ import { useAtomSet } from "@effect/atom-react"
 import { useCallback, useEffect, useState } from "react"
 
 import { uploadAtom } from "../atoms.ts"
+import { errorMessage } from "../error-message.ts"
 
 interface UploadsOptions {
   /** Listen for files dropped or pasted anywhere on the page. */
@@ -92,11 +93,7 @@ export const useUploads = ({
       try {
         onPaths(await uploadFiles(files))
       } catch (error) {
-        onError(
-          error instanceof Error && error.message.length > 0
-            ? error.message
-            : "Couldn't upload the file"
-        )
+        onError(errorMessage(error, "Couldn't upload the file"))
       } finally {
         setUploading(false)
       }

@@ -3,9 +3,9 @@ import path from "node:path"
 import { Effect } from "effect"
 import { HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/http"
 
-import { commands } from "../commands/commands.ts"
+import { commands, transcriptionModelCommands } from "../commands/commands.ts"
 import type { VoiceCommandSelectorService } from "../commands/voice-command.ts"
-import type { CtermConfig } from "../config/config.ts"
+import type { ConfigService } from "../config/config.ts"
 import { uploadsDir } from "../config/paths.ts"
 import { commandCatalogue } from "../models/models.ts"
 import type { ModelsStoreService } from "../models/store.ts"
@@ -16,6 +16,7 @@ import { gitDiffResponse, terminalWorkingDirectory } from "./diff.ts"
 import { healthResponse } from "./health.ts"
 import { jsonError } from "./http.ts"
 import { transcribeResponse } from "./transcribe.ts"
+import { transcriptionModelResponse } from "./transcription-model.ts"
 import { uiDirectory } from "./ui.ts"
 import { uploadResponse } from "./upload.ts"
 import { voiceCommandResponse } from "./voice-command.ts"
@@ -93,10 +94,12 @@ const staticRoute = HttpRouter.route("*", "*", (request) =>
 
 export interface HttpHandlerOptions {
   readonly baseSessionName: string
-  readonly config: CtermConfig
+  readonly config: ConfigService
   readonly models: ModelsStoreService
   readonly transcription: TranscriptionService
   readonly voiceCommandSelector: VoiceCommandSelectorService
+  /** Directory the tmux sessions started in; fixed for the server's life. */
+  readonly workingDirectory: string
 }
 
 /**
@@ -109,6 +112,7 @@ export const createHttpHandler = ({
   models,
   transcription,
   voiceCommandSelector,
+  workingDirectory,
 }: HttpHandlerOptions) => {
   const guardedPost = (
     routePath: HttpRouter.PathInput,
@@ -139,7 +143,7 @@ export const createHttpHandler = ({
         async () =>
           await terminalWorkingDirectory(
             sessionNameFor(baseSessionName, sessionNumber),
-            config.workingDirectory
+            workingDirectory
           )
       )
       const response = yield* Effect.promise(
@@ -152,16 +156,18 @@ export const createHttpHandler = ({
   const commandsRoute = HttpRouter.route("GET", "/commands", () =>
     Effect.gen(function* commandsRouteHandler() {
       const scoped = yield* models.list()
-      return noStore(commandsHttpResponse(commandCatalogue(commands, scoped)))
+      const { transcriptionModel } = yield* config.get
+      return noStore(
+        commandsHttpResponse([
+          ...commandCatalogue(commands, scoped),
+          ...transcriptionModelCommands(transcriptionModel),
+        ])
+      )
     }).pipe(
-      Effect.catchTag("ModelsError", () =>
+      Effect.catchTag(["ConfigError", "ModelsError"], (failure) =>
         Effect.succeed(
           HttpServerResponse.fromWeb(
-            jsonError(
-              500,
-              "commands_failed",
-              "Could not read pi's scoped model list"
-            )
+            jsonError(500, "commands_failed", `Could not ${failure.detail}`)
           )
         )
       )
@@ -176,6 +182,9 @@ export const createHttpHandler = ({
     ),
     guardedPost("/transcribe", (request) =>
       transcribeResponse(request, transcription)
+    ),
+    guardedPost("/transcription-model", (request) =>
+      transcriptionModelResponse(request, config)
     ),
     guardedPost("/voice-command", (request) =>
       voiceCommandResponse(request, voiceCommandSelector)

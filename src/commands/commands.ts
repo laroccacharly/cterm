@@ -1,5 +1,12 @@
 import { Schema } from "effect"
 
+import {
+  TranscriptionModelSchema,
+  transcriptionModelNames,
+  transcriptionModels,
+} from "../api/transcription.ts"
+import type { TranscriptionModel } from "../api/transcription.ts"
+
 /**
  * A command is an action that can be discovered and run from the Commands
  * page. Unlike shortcuts, commands are not buttons in the terminal header.
@@ -17,13 +24,21 @@ const FontSizeActionSchema = Schema.Struct({
   type: Schema.Literal("font-size"),
 })
 
+const TranscriptionModelActionSchema = Schema.Struct({
+  model: TranscriptionModelSchema,
+  type: Schema.Literal("transcription-model"),
+})
+
 export const CommandActionSchema = Schema.Union([
   InputActionSchema,
   FontSizeActionSchema,
+  TranscriptionModelActionSchema,
 ])
 
 export const CommandSchema = Schema.Struct({
   action: CommandActionSchema,
+  /** Set on choices where one option is in effect, like the STT model. */
+  active: Schema.optionalKey(Schema.Boolean),
   description: Schema.String,
   id: Schema.String,
   label: Schema.String,
@@ -64,5 +79,17 @@ export const commands: readonly Command[] = [
     label: `Thinking ${level}`,
   })),
 ]
+
+/** One command per speech-to-text model, flagging the one in use. */
+export const transcriptionModelCommands = (
+  current: TranscriptionModel
+): readonly Command[] =>
+  transcriptionModels.map((model) => ({
+    action: { model, type: "transcription-model" },
+    active: model === current,
+    description: `Transcribe voice input with ${transcriptionModelNames[model]} (${model}).`,
+    id: `stt:${model}`,
+    label: `Speech-to-text: ${transcriptionModelNames[model]}`,
+  }))
 
 export const commandsResponse: CommandsResponse = { commands: [...commands] }

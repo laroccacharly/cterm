@@ -1,4 +1,5 @@
 import { useToaster } from "../components/toaster.tsx"
+import { errorMessage } from "../error-message.ts"
 import type { Recorder, RecorderState } from "../hooks/use-recorder.ts"
 
 interface ShortcutsProps {
@@ -137,11 +138,7 @@ export const Shortcuts = ({
       }
       onPaste(text)
     } catch (error) {
-      toaster.error(
-        error instanceof Error && error.message.length > 0
-          ? error.message
-          : "Couldn't read the clipboard"
-      )
+      toaster.error(errorMessage(error, "Couldn't read the clipboard"))
     }
   }
   return (

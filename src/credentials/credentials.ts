@@ -11,17 +11,11 @@ import {
 /** Vault service name used for every cterm secret in the OS keychain. */
 export const CREDENTIALS_SERVICE = "cterm"
 
-/** ElevenLabs key used for voice transcription. */
-export const ELEVENLABS_API_KEY_ENV = "ELEVENLABS_API_KEY"
-
 /** OpenRouter key used for transcription and to reach jev. */
 export const OPENROUTER_API_KEY_ENV = "OPENROUTER_API_KEY"
 
 /** Every secret `cterm login` stores, in display order. */
-export const secretNames = [
-  ELEVENLABS_API_KEY_ENV,
-  OPENROUTER_API_KEY_ENV,
-] as const
+export const secretNames = [OPENROUTER_API_KEY_ENV] as const
 
 export type SecretName = (typeof secretNames)[number]
 

@@ -79,3 +79,31 @@ test("hides voice commands while keeping voice input available", async ({
     page.getByRole("button", { name: "Start voice input" })
   ).toBeVisible()
 })
+
+test("switches the speech-to-text model and marks it active", async ({
+  page,
+}) => {
+  await page.goto("/")
+  await page.getByRole("button", { name: "Commands", exact: true }).click()
+
+  const microsoft = page.getByRole("button", {
+    name: "Speech-to-text: Microsoft MAI-Transcribe 2",
+  })
+  const elevenLabs = page.getByRole("button", {
+    name: "Speech-to-text: ElevenLabs Scribe v2",
+  })
+  await microsoft.click()
+  await expect(microsoft).toHaveAttribute("aria-current", "true")
+
+  await elevenLabs.click()
+  await expect(
+    page
+      .getByRole("list", { name: "Notifications" })
+      .getByText("Speech-to-text now uses ElevenLabs Scribe v2")
+  ).toBeVisible()
+  await expect(elevenLabs).toHaveAttribute("aria-current", "true")
+  await expect(microsoft).not.toHaveAttribute("aria-current", "true")
+
+  await microsoft.click()
+  await expect(microsoft).toHaveAttribute("aria-current", "true")
+})

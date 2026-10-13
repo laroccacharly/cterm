@@ -30,6 +30,7 @@ const printConfig = Effect.fn("printConfig")(function* printConfig(
   yield* Console.log(`tailscalePort: ${config.tailscalePort}`)
   yield* Console.log(`workingDirectory: ${config.workingDirectory}`)
   yield* Console.log(`sessionName: ${config.sessionName}`)
+  yield* Console.log(`transcriptionModel: ${config.transcriptionModel}`)
 })
 
 const updateCommand = Command.make(
@@ -69,7 +70,7 @@ export const configCommand = Command.make(
   {},
   Effect.fn("configCommand")(function* configCommand() {
     const config = yield* Config
-    const current = yield* config.get()
+    const current = yield* config.get
 
     yield* Console.log(`path: ${configPath}`)
     yield* printConfig(current)

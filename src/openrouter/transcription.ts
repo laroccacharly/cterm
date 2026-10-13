@@ -16,21 +16,55 @@ import {
 } from "effect/http"
 
 import { TranscriptionResponseSchema } from "../api/transcription.ts"
-import type { TranscriptionResponse } from "../api/transcription.ts"
+import type {
+  TranscriptionModel,
+  TranscriptionResponse,
+} from "../api/transcription.ts"
+import { Config } from "../config/config.ts"
 import {
   Credentials,
   OPENROUTER_API_KEY_ENV,
 } from "../credentials/credentials.ts"
+import { remuxToOgg } from "../ffmpeg/ffmpeg.ts"
 
-export const TRANSCRIPTION_MODEL = "microsoft/mai-transcribe-2"
 export const OPENROUTER_TRANSCRIPTION_ENDPOINT =
   "https://openrouter.ai/api/v1/audio/transcriptions"
 
 export interface TranscribeInput {
   readonly data: ArrayBuffer
-  readonly filename: string
   readonly contentType: string
 }
+
+/** Maps a browser audio MIME type to the format name sent to OpenRouter. */
+export const formatFor = (contentType: string): string => {
+  const base = contentType.split(";")[0]?.trim().toLowerCase() ?? ""
+
+  switch (base) {
+    case "audio/mp4": {
+      return "mp4"
+    }
+    case "audio/mpeg": {
+      return "mp3"
+    }
+    case "audio/ogg": {
+      return "ogg"
+    }
+    case "audio/wav":
+    case "audio/x-wav": {
+      return "wav"
+    }
+    default: {
+      return "webm"
+    }
+  }
+}
+
+/**
+ * Microsoft's provider rejects the WebM and MP4 containers browsers record,
+ * so those are converted to ogg first. ElevenLabs takes them as-is.
+ */
+export const needsOgg = (model: TranscriptionModel, format: string): boolean =>
+  model.startsWith("microsoft/") && !["mp3", "ogg", "wav"].includes(format)
 
 /** Raised when recorded audio cannot be transcribed. */
 export class TranscriptionError extends Schema.TaggedError<TranscriptionError>()(
@@ -76,7 +110,21 @@ export interface TranscriptionService {
   ) => Effect.Effect<TranscriptionResponse, TranscriptionError>
 }
 
-/** OpenRouter batch speech-to-text client using MAI-Transcribe. */
+/** Provider options OpenRouter forwards for a given model. */
+const providerFor = (model: TranscriptionModel) =>
+  model.startsWith("microsoft/")
+    ? {
+        provider: {
+          options: {
+            azure: {
+              enhancedMode: { modelOptions: { transcribeStyle: "clean" } },
+            },
+          },
+        },
+      }
+    : {}
+
+/** OpenRouter batch speech-to-text client using the configured model. */
 export class Transcription extends Context.Service<
   Transcription,
   TranscriptionService
@@ -85,6 +133,7 @@ export class Transcription extends Context.Service<
     Transcription,
     Effect.gen(function* transcriptionLayer() {
       const credentials = yield* Credentials
+      const config = yield* Config
 
       const apiKey = credentials.resolve(OPENROUTER_API_KEY_ENV).pipe(
         Effect.mapError(
@@ -122,7 +171,25 @@ export class Transcription extends Context.Service<
       const transcribe = Effect.fn("Transcription.transcribe")(
         function* transcribe(input: TranscribeInput) {
           const key = yield* apiKey
-          const format = input.filename.split(".").at(-1) ?? "webm"
+          // Read per request so switching models applies without a restart.
+          const model = yield* config.get.pipe(
+            Effect.map((current) => current.transcriptionModel),
+            Effect.mapError(
+              (cause) => new TranscriptionError({ cause, detail: cause.detail })
+            )
+          )
+          const recorded = formatFor(input.contentType)
+          const { data, format } = needsOgg(model, recorded)
+            ? {
+                data: yield* remuxToOgg(input.data, recorded).pipe(
+                  Effect.mapError(
+                    (cause) =>
+                      new TranscriptionError({ cause, detail: cause.message })
+                  )
+                ),
+                format: "ogg",
+              }
+            : { data: input.data, format: recorded }
           const request = HttpClientRequest.post(
             OPENROUTER_TRANSCRIPTION_ENDPOINT
           ).pipe(
@@ -132,19 +199,11 @@ export class Transcription extends Context.Service<
             ),
             HttpClientRequest.bodyJsonUnsafe({
               input_audio: {
-                data: Buffer.from(input.data).toString("base64"),
+                data: Buffer.from(data).toString("base64"),
                 format,
               },
-              model: TRANSCRIPTION_MODEL,
-              provider: {
-                options: {
-                  azure: {
-                    enhancedMode: {
-                      modelOptions: { transcribeStyle: "clean" },
-                    },
-                  },
-                },
-              },
+              model,
+              ...providerFor(model),
             })
           )
 
@@ -158,7 +217,7 @@ export class Transcription extends Context.Service<
                   Effect.fail(
                     new TranscriptionError({
                       cause: error,
-                      detail: `OpenRouter speech-to-text request failed (${format}, ${TRANSCRIPTION_MODEL}): ${reason}`,
+                      detail: `OpenRouter speech-to-text request failed (${format}, ${model}): ${reason}`,
                     })
                   )
                 )

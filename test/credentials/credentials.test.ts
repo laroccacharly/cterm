@@ -9,7 +9,6 @@ import {
 } from "../../src/credentials/credentials.ts"
 
 const provider = ConfigProvider.fromEnvRecord({
-  ELEVENLABS_API_KEY: "eleven-key",
   OPENROUTER_API_KEY: "env-key",
 })
 
@@ -24,8 +23,8 @@ const withCredentials = async <A, E>(
   )
 
 describe("credentials", () => {
-  test("stores both the ElevenLabs and OpenRouter keys", () => {
-    expect(secretNames).toEqual(["ELEVENLABS_API_KEY", "OPENROUTER_API_KEY"])
+  test("stores the OpenRouter key", () => {
+    expect(secretNames).toEqual(["OPENROUTER_API_KEY"])
   })
 
   test("fromEnv reads the matching environment variable", async () => {

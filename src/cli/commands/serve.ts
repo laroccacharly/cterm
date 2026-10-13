@@ -14,13 +14,12 @@ export const serveCommand = Command.make(
   "serve",
   { port: Flag.optional(portFlag) },
   Effect.fn("serveCommand")(function* serveCommand({ port }) {
-    const configService = yield* Config
-    const configured = yield* configService.get()
-    const fs = yield* FileSystem.FileSystem
+    const config = yield* Config
     const resolved = {
-      ...configured,
-      port: yield* configService.resolve("port", port),
+      ...(yield* config.get),
+      port: yield* config.resolve("port", port),
     }
+    const fs = yield* FileSystem.FileSystem
 
     const directoryInfo = yield* fs
       .stat(resolved.workingDirectory)
@@ -41,6 +40,6 @@ export const serveCommand = Command.make(
     yield* Effect.logInfo(
       `Serving cterm at http://127.0.0.1:${resolved.port} (${resolved.workingDirectory}, tmux session ${resolved.sessionName})`
     )
-    return yield* Layer.launch(serverLayer(resolved))
+    return yield* Layer.launch(serverLayer(resolved.port))
   })
 ).pipe(Command.withDescription("Build the terminal UI and serve it"))

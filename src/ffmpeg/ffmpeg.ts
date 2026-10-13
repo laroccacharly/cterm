@@ -12,8 +12,8 @@ export const ensureFfmpeg = (
     : Effect.void
 
 /**
- * Convert browser recordings into Ogg/Opus, since OpenRouter's transcription
- * provider rejects the WebM and MP4 containers. WebM/Opus is remuxed
+ * Convert browser recordings into Ogg/Opus, since Microsoft's transcription
+ * provider on OpenRouter rejects the WebM and MP4 containers. WebM/Opus is remuxed
  * losslessly; anything else (e.g. Safari's MP4/AAC) is re-encoded.
  */
 export const remuxToOgg = (

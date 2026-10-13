@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 
+import { errorMessage } from "../error-message.ts"
+
 export type RecorderState = "idle" | "recording" | "transcribing"
 
 interface UseRecorderOptions {
@@ -46,11 +48,7 @@ export const useRecorder = ({
           await onTranscript(text.trim())
         }
       } catch (error) {
-        onError(
-          error instanceof Error && error.message.length > 0
-            ? error.message
-            : "Transcription failed"
-        )
+        onError(errorMessage(error, "Transcription failed"))
       } finally {
         setState("idle")
       }
@@ -81,11 +79,7 @@ export const useRecorder = ({
       setState("recording")
     } catch (error) {
       stopTracks()
-      onError(
-        error instanceof Error && error.message.length > 0
-          ? error.message
-          : "Microphone is unavailable"
-      )
+      onError(errorMessage(error, "Microphone is unavailable"))
       setState("idle")
     }
   }, [finish, onError, stopTracks])

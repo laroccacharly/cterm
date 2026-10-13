@@ -44,6 +44,7 @@ const CommandList = ({ commands, context }: CommandListProps) => {
       {commands.map((command) => (
         <li key={command.id}>
           <button
+            aria-current={command.active === true ? "true" : undefined}
             aria-label={command.label}
             className="command-item"
             onClick={() => {
@@ -51,7 +52,12 @@ const CommandList = ({ commands, context }: CommandListProps) => {
             }}
             type="button"
           >
-            <span className="command-item__label">{command.label}</span>
+            <span className="command-item__label">
+              {command.label}
+              {command.active === true ? (
+                <span className="command-item__active">Active</span>
+              ) : null}
+            </span>
             <span className="command-item__description">
               {command.description}
             </span>
