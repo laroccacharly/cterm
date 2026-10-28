@@ -12,15 +12,13 @@
         "@xterm/addon-web-links": "0.13.0-beta.301",
         "@xterm/xterm": "6.1.0-beta.304",
         "effect": "4.0.0",
-        "effect-lib": "github:laroccacharly/effect-lib#v0.7.0",
-        "qrcode": "^1.5.4",
+        "effect-lib": "github:laroccacharly/effect-lib#v0.16.0",
         "react": "^19.3.0",
         "react-dom": "^19.3.0",
       },
       "devDependencies": {
         "@playwright/test": "^1.63.0",
         "@types/bun": "^1.4.2",
-        "@types/qrcode": "^1.5.6",
         "@types/react": "^19.3.0",
         "@types/react-dom": "^19.3.0",
         "@vitejs/plugin-react": "^6.1.1",
@@ -341,7 +339,7 @@
 
     "effect": ["effect@4.0.0", "", {}, "sha512-ooc1TG5t+FfzgYnFz2ff6BBKyZ7EwBRVXC7c4RhQUAD6/TZ2gTXXMeb4WX7a19ozQo4J73/QW+S00YAIresoMQ=="],
 
-    "effect-lib": ["effect-lib@github:laroccacharly/effect-lib#2145465", { "peerDependencies": { "effect": "4.0.0" } }, "laroccacharly-effect-lib-2145465", "sha512-yCww+81zKnJWu3oMKM3No5Sd83gqjxXRY08HqzNN6pJ742wzYfXJOvB/AoeZBFcX9/xy+9W681j+KYzWPnZgFA=="],
+    "effect-lib": ["effect-lib@github:laroccacharly/effect-lib#801fe1c", { "dependencies": { "@types/qrcode": "^1.5.6", "qrcode": "^1.5.4" }, "peerDependencies": { "@effect/platform-bun": "^4.0.0", "effect": "^4.0.0" }, "bin": { "elib": "./src/cli.ts" } }, "laroccacharly-effect-lib-801fe1c", "sha512-BXMNAmyDJeoT0lZcDET6UaYESVs7QQe7mIttJm1uRZycn2ktzggydu70eKeZnXxbKjxDK0uBmDOVVsvJ7xBcvw=="],
 
     "emoji-regex": ["emoji-regex@8.0.0", "", {}, "sha512-MSjYzcWNOA0ewAHpz0MxpYFvwg6yjy1NG3xteoqz644VCo/RPgnr1/GGt+ic3iJTzQ8Eu3TdM14SawnVUmGE6A=="],
 

@@ -5,19 +5,19 @@ import { Config } from "../../config/config.ts"
 import { serverLayer } from "../../server/serve.ts"
 import { buildUi } from "../../server/ui.ts"
 
-const portFlag = Flag.Int("port").pipe(
+const serverPortFlag = Flag.Int("server-port").pipe(
   Flag.withAlias("p"),
   Flag.withDescription("Port to serve the UI on (overrides config)")
 )
 
 export const serveCommand = Command.make(
   "serve",
-  { port: Flag.optional(portFlag) },
-  Effect.fn("serveCommand")(function* serveCommand({ port }) {
+  { serverPort: Flag.optional(serverPortFlag) },
+  Effect.fn("serveCommand")(function* serveCommand({ serverPort }) {
     const config = yield* Config
     const resolved = {
       ...(yield* config.get),
-      port: yield* config.resolve("port", port),
+      serverPort: yield* config.resolve("serverPort", serverPort),
     }
     const fs = yield* FileSystem.FileSystem
 
@@ -38,8 +38,8 @@ export const serveCommand = Command.make(
 
     yield* buildUi()
     yield* Effect.logInfo(
-      `Serving cterm at http://127.0.0.1:${resolved.port} (${resolved.workingDirectory}, tmux session ${resolved.sessionName})`
+      `Serving cterm at http://127.0.0.1:${resolved.serverPort} (${resolved.workingDirectory}, tmux session ${resolved.sessionName})`
     )
-    return yield* Layer.launch(serverLayer(resolved.port))
+    return yield* Layer.launch(serverLayer(resolved.serverPort))
   })
 ).pipe(Command.withDescription("Build the terminal UI and serve it"))

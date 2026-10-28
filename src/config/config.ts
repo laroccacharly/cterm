@@ -2,14 +2,13 @@ import path from "node:path"
 
 import { Context, Effect, FileSystem, Layer, Option, Schema } from "effect"
 import * as JsonStore from "effect-lib/json-store"
+import { TailscalePort } from "effect-lib/tailscale"
 
 import {
   TranscriptionModelSchema,
   transcriptionModels,
 } from "../api/transcription.ts"
 import { configPath, home } from "./paths.ts"
-
-export const defaultTailscalePort = 8444
 
 const Port = Schema.Int.check(Schema.isBetween({ maximum: 65_535, minimum: 1 }))
 const SessionName = Schema.String.check(
@@ -20,21 +19,24 @@ const SessionName = Schema.String.check(
 const WorkingDirectory = Schema.String.check(Schema.isMinLength(1))
 
 export const defaultConfig = {
-  port: 3001,
+  serverPort: 3001,
   sessionName: "cterm",
-  tailscalePort: defaultTailscalePort,
+  // Tailscale keys serve configs by HTTPS port, so cterm gets its own.
+  tailscalePort: 8444,
   transcriptionModel: transcriptionModels[0],
   workingDirectory: path.join(home, "Work"),
 } as const
 
 /** cterm's persisted configuration, including backward-compatible defaults. */
 export const CtermConfigSchema = Schema.Struct({
-  port: Port,
+  serverPort: Port.pipe(
+    Schema.withDecodingDefault(Effect.succeed(defaultConfig.serverPort))
+  ),
   sessionName: SessionName.pipe(
     Schema.withDecodingDefault(Effect.succeed(defaultConfig.sessionName))
   ),
-  tailscalePort: Port.pipe(
-    Schema.withDecodingDefault(Effect.succeed(defaultTailscalePort))
+  tailscalePort: TailscalePort.pipe(
+    Schema.withDecodingDefault(Effect.succeed(defaultConfig.tailscalePort))
   ),
   transcriptionModel: TranscriptionModelSchema.pipe(
     Schema.withDecodingDefault(Effect.succeed(defaultConfig.transcriptionModel))
@@ -46,7 +48,7 @@ export const CtermConfigSchema = Schema.Struct({
 
 export type CtermConfig = typeof CtermConfigSchema.Type
 
-/** Fields that `cterm config update` and the UI may patch. */
+/** Fields that the UI may patch. */
 export type CtermConfigPatch = {
   -readonly [K in keyof CtermConfig]?: CtermConfig[K]
 }
@@ -59,6 +61,12 @@ export class ConfigError extends Schema.TaggedError<ConfigError>()(
     detail: Schema.String,
   }
 ) {}
+
+/** cterm's config file, with `config get | set | unset | list` commands. */
+export const configStoreAt = (filePath: string) =>
+  JsonStore.make(filePath, CtermConfigSchema)
+
+export const configStore = configStoreAt(configPath)
 
 const storeError = (error: JsonStore.JsonStoreError): ConfigError =>
   new ConfigError({ cause: error, detail: error.message })
@@ -94,7 +102,7 @@ export class Config extends Context.Service<Config, ConfigService>()(
       Config,
       Effect.gen(function* configLayer() {
         const fs = yield* FileSystem.FileSystem
-        const store = JsonStore.make(filePath, CtermConfigSchema)
+        const store = configStoreAt(filePath)
 
         const get = store.load.pipe(
           Effect.map(Option.getOrElse((): CtermConfig => defaultConfig)),

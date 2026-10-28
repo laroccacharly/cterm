@@ -10,7 +10,6 @@ import {
   Config,
   CtermConfigSchema,
   defaultConfig,
-  defaultTailscalePort,
 } from "../../src/config/config.ts"
 
 const decodeConfig = Schema.decodeUnknownSync(
@@ -19,10 +18,10 @@ const decodeConfig = Schema.decodeUnknownSync(
 
 describe("CtermConfigSchema", () => {
   test("defaults fields for older config files", () => {
-    expect(decodeConfig('{"port":3111}')).toEqual({
-      port: 3111,
+    expect(decodeConfig('{"serverPort":3111}')).toEqual({
+      serverPort: 3111,
       sessionName: defaultConfig.sessionName,
-      tailscalePort: defaultTailscalePort,
+      tailscalePort: defaultConfig.tailscalePort,
       transcriptionModel: defaultConfig.transcriptionModel,
       workingDirectory: defaultConfig.workingDirectory,
     })
@@ -31,10 +30,10 @@ describe("CtermConfigSchema", () => {
   test("keeps explicit fields", () => {
     expect(
       decodeConfig(
-        '{"port":3111,"sessionName":"work","tailscalePort":9000,"transcriptionModel":"elevenlabs/scribe-v2","workingDirectory":"/tmp"}'
+        '{"serverPort":3111,"sessionName":"work","tailscalePort":9000,"transcriptionModel":"elevenlabs/scribe-v2","workingDirectory":"/tmp"}'
       )
     ).toEqual({
-      port: 3111,
+      serverPort: 3111,
       sessionName: "work",
       tailscalePort: 9000,
       transcriptionModel: "elevenlabs/scribe-v2",
@@ -45,7 +44,7 @@ describe("CtermConfigSchema", () => {
   test("rejects unsafe tmux session names and invalid ports", () => {
     expect(() =>
       decodeConfig(
-        '{"port":0,"sessionName":"bad name","tailscalePort":9000,"workingDirectory":"/tmp"}'
+        '{"serverPort":0,"sessionName":"bad name","tailscalePort":9000,"workingDirectory":"/tmp"}'
       )
     ).toThrow()
   })
@@ -95,7 +94,7 @@ describe("Config", () => {
     const error = await withConfig(
       Effect.gen(function* updateConfig() {
         const config = yield* Config
-        return yield* config.update({ port: 0 }).pipe(Effect.flip)
+        return yield* config.update({ serverPort: 0 }).pipe(Effect.flip)
       })
     )
 
