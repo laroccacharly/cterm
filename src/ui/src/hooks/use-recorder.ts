@@ -7,6 +7,8 @@ export type RecorderState = "idle" | "recording" | "transcribing"
 interface UseRecorderOptions {
   readonly onError: (message: string) => void
   readonly onTranscript: (text: string) => Promise<void> | void
+  /** Loads the local model; recording continues whatever it does. */
+  readonly prepare: () => Promise<void>
   readonly transcribe: (audio: Blob) => Promise<string>
 }
 
@@ -19,6 +21,7 @@ export interface Recorder {
 export const useRecorder = ({
   onError,
   onTranscript,
+  prepare,
   transcribe,
 }: UseRecorderOptions): Recorder => {
   const [state, setState] = useState<RecorderState>("idle")
@@ -56,7 +59,16 @@ export const useRecorder = ({
     [onError, onTranscript, transcribe]
   )
 
+  const prepareModel = useCallback(async () => {
+    try {
+      await prepare()
+    } catch (error) {
+      onError(errorMessage(error, "Could not prepare voice input"))
+    }
+  }, [onError, prepare])
+
   const start = useCallback(async () => {
+    void prepareModel()
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       streamRef.current = stream
@@ -82,7 +94,7 @@ export const useRecorder = ({
       onError(errorMessage(error, "Microphone is unavailable"))
       setState("idle")
     }
-  }, [finish, onError, stopTracks])
+  }, [finish, onError, prepareModel, stopTracks])
 
   const stop = useCallback(() => {
     recorderRef.current?.stop()

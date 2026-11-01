@@ -1,5 +1,6 @@
 import path from "node:path"
 
+import type { SttClient } from "@laroccacharly/stt-client"
 import { Effect } from "effect"
 import { HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/http"
 
@@ -8,7 +9,6 @@ import type { VoiceCommandSelectorService } from "../commands/voice-command.ts"
 import { uploadsDir } from "../config/paths.ts"
 import { commandCatalogue } from "../models/models.ts"
 import type { ModelsStoreService } from "../models/store.ts"
-import type { SttClient } from "@laroccacharly/stt-client"
 import { runningPtySession } from "../terminal/pty-sessions.ts"
 import { parseSessionNumber, sessionNameFor } from "../terminal/sessions.ts"
 import { commandsHttpResponse } from "./commands.ts"
@@ -16,7 +16,7 @@ import { gitDiffResponse, terminalWorkingDirectory } from "./diff.ts"
 import { healthResponse } from "./health.ts"
 import { jsonError } from "./http.ts"
 import { scrollbackResponse } from "./scrollback.ts"
-import { transcribeResponse } from "./transcribe.ts"
+import { prepareResponse, transcribeResponse } from "./transcribe.ts"
 import { uiDirectory } from "./ui.ts"
 import { uploadResponse } from "./upload.ts"
 import { voiceCommandResponse } from "./voice-command.ts"
@@ -174,9 +174,7 @@ export const createHttpHandler = ({
     Effect.gen(function* commandsRouteHandler() {
       const scoped = yield* models.list()
       return noStore(
-        commandsHttpResponse([
-          ...commandCatalogue(commands, scoped),
-        ])
+        commandsHttpResponse([...commandCatalogue(commands, scoped)])
       )
     }).pipe(
       Effect.catchTag(["ModelsError"], (failure) =>
@@ -198,6 +196,7 @@ export const createHttpHandler = ({
     guardedPost("/transcribe", (request) =>
       transcribeResponse(request, transcription)
     ),
+    guardedPost("/transcribe/prepare", () => prepareResponse(transcription)),
     guardedPost("/voice-command", (request) =>
       voiceCommandResponse(request, voiceCommandSelector)
     ),

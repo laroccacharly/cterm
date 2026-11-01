@@ -24,8 +24,6 @@ export const CommandActionSchema = Schema.Union([
 
 export const CommandSchema = Schema.Struct({
   action: CommandActionSchema,
-  /** Set on choices where one option is in effect. */
-  active: Schema.optionalKey(Schema.Boolean),
   description: Schema.String,
   id: Schema.String,
   label: Schema.String,

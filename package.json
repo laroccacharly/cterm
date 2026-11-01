@@ -20,7 +20,7 @@
   "dependencies": {
     "@effect/atom-react": "4.1.1",
     "@effect/platform-bun": "4.1.1",
-    "@laroccacharly/stt-client": "https://github.com/laroccacharly/stt/releases/download/client-v0.2.0/stt-client-0.2.0.tgz",
+    "@laroccacharly/stt-client": "https://github.com/laroccacharly/stt/releases/download/client-v0.3.0/stt-client-0.3.0.tgz",
     "@pierre/diffs": "^1.4.3",
     "@xterm/addon-fit": "0.12.0-beta.332",
     "@xterm/addon-serialize": "0.15.0-beta.330",

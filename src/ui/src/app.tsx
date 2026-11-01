@@ -1,7 +1,7 @@
 import { useAtomSet } from "@effect/atom-react"
 import { lazy, Suspense, useCallback, useState } from "react"
 
-import { transcribeAtom } from "./atoms.ts"
+import { prepareTranscriptionAtom, transcribeAtom } from "./atoms.ts"
 import { CommandsView } from "./commands/commands-view.tsx"
 import { AppHeader } from "./components/app-header.tsx"
 import { SessionTabs } from "./components/session-tabs.tsx"
@@ -26,10 +26,12 @@ export const App = () => {
   const sessions = useTerminalSessions(view === "terminal")
   const terminal = sessions.active
   const transcribe = useAtomSet(transcribeAtom, { mode: "promise" })
+  const prepare = useAtomSet(prepareTranscriptionAtom, { mode: "promise" })
   const toaster = useToaster()
   const recorder = useRecorder({
     onError: toaster.error,
     onTranscript: terminal.sendInput,
+    prepare,
     transcribe,
   })
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false)

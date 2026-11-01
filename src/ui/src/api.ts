@@ -91,6 +91,15 @@ export const fetchScrollback = (
     Effect.mapError(unexpected)
   )
 
+/** Ask cterm to load the local STT model before a recording is sent. */
+export const prepareTranscription: Effect.Effect<
+  void,
+  ApiError,
+  HttpClient.HttpClient
+> = execute(HttpClientRequest.post(url("/transcribe/prepare"))).pipe(
+  Effect.asVoid
+)
+
 /** Send a recorded clip to cterm and return its transcript. */
 export const transcribeAudio = (
   audio: Blob

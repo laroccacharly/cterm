@@ -36,23 +36,27 @@ export default defineConfig({
     baseURL,
     trace: "on-first-retry",
   },
-  webServer: [{
-    command: "bun e2e/stt-server.ts",
-    reuseExistingServer: false,
-    url: "http://127.0.0.1:3212/health",
-  }, {
-    command: `mkdir -p ${tmuxDir}; for session in 1 2 3; do tmux kill-session -t cterm-e2e-$session 2>/dev/null || true; done; bun src/cli/index.ts serve --server-port ${port}`,
-    env: {
-      CTERM_TMUX_SESSION: "cterm-e2e",
-      CTERM_STT_URL: "http://127.0.0.1:3212",
-      CTERM_UI_DIR: path.join(stateDir, "dist-ui"),
-      TMUX_TMPDIR: tmuxDir,
-      XDG_CACHE_HOME: path.join(stateDir, "cache"),
-      XDG_CONFIG_HOME: path.join(stateDir, "config"),
+  webServer: [
+    {
+      command: "bun e2e/stt-server.ts",
+      reuseExistingServer: false,
+      url: "http://127.0.0.1:3212/health",
     },
-    reuseExistingServer: false,
-    timeout: 180_000,
-    url: `${baseURL}/health`,
-  }],
+    {
+      command: `mkdir -p ${tmuxDir}; for session in 1 2 3; do tmux kill-session -t cterm-e2e-$session 2>/dev/null || true; done; bun src/cli/index.ts serve --server-port ${port}`,
+      env: {
+        CTERM_TMUX_SESSION: "cterm-e2e",
+        CTERM_STT_URL: "http://127.0.0.1:3212",
+        CTERM_UI_DIR: path.join(stateDir, "dist-ui"),
+        TMUX_TMPDIR: tmuxDir,
+        XDG_CACHE_HOME: path.join(stateDir, "cache"),
+        XDG_CONFIG_HOME: path.join(stateDir, "config"),
+      },
+      // A reused dev server would not point CTERM_STT_URL at the fake stt server.
+      reuseExistingServer: false,
+      timeout: 180_000,
+      url: `${baseURL}/health`,
+    },
+  ],
   workers: 1,
 })

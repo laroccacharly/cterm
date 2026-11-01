@@ -1,10 +1,10 @@
+import { SttClient } from "@laroccacharly/stt-client"
 import { Effect, Layer, Schema } from "effect"
 
 import { VoiceCommandSelector } from "../commands/voice-command.ts"
 import { Config } from "../config/config.ts"
 import { Credentials } from "../credentials/credentials.ts"
 import { ModelsStore } from "../models/store.ts"
-import { SttClient } from "@laroccacharly/stt-client"
 import { killPtySessions } from "../terminal/pty-sessions.ts"
 import { parseSessionNumber } from "../terminal/sessions.ts"
 import type { TerminalSocketData } from "../terminal/socket.ts"
@@ -13,6 +13,9 @@ import { createHttpHandler, isSameOrigin } from "./router.ts"
 import type { HttpHandlerOptions } from "./router.ts"
 import { maxAudioBytes } from "./transcribe.ts"
 import { maxUploadBytes } from "./upload.ts"
+
+/** Where the local stt service listens unless `CTERM_STT_URL` says otherwise. */
+export const defaultSttUrl = "http://127.0.0.1:4318"
 
 const securityHeaders = {
   "Content-Security-Policy":
@@ -76,6 +79,12 @@ const makeServer = (options: ServerOptions): CtermServer => {
             })
       }
 
+      // stt can take minutes on a cold model load, longer than Bun's 10 s
+      // idle timeout; transcribe.ts bounds these requests instead.
+      if (url.pathname.startsWith("/transcribe")) {
+        socketServer.timeout(request, 0)
+      }
+
       return withSecurityHeaders(await http.handler(request))
     },
     hostname: "127.0.0.1",
@@ -130,7 +139,7 @@ export const serverLayer = (port: number) =>
       })
     )
   ).pipe(
-    Layer.provide(SttClient.layer(process.env.CTERM_STT_URL ?? "http://127.0.0.1:4318")),
+    Layer.provide(SttClient.layer(process.env.CTERM_STT_URL ?? defaultSttUrl)),
     Layer.provide(VoiceCommandSelector.layer),
     Layer.provide(ModelsStore.layer),
     Layer.provide(Credentials.layer)

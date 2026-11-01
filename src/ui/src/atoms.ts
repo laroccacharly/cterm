@@ -6,6 +6,7 @@ import {
   fetchCommands,
   fetchCurrentDiff,
   fetchScrollback,
+  prepareTranscription,
   selectVoiceCommand,
   transcribeAudio,
   uploadFiles,
@@ -35,6 +36,11 @@ export const diffAtom = Atom.family((session: number) =>
 /** Snapshot a terminal session's history for client-side scrolling. */
 export const scrollbackAtom = appRuntime.fn((session: number) =>
   fetchScrollback(session)
+)
+
+/** Load the local STT model so the first clip does not wait for it. */
+export const prepareTranscriptionAtom = appRuntime.fn(
+  () => prepareTranscription
 )
 
 /** Transcribe one recorded clip. */
