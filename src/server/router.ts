@@ -15,6 +15,7 @@ import { commandsHttpResponse } from "./commands.ts"
 import { gitDiffResponse, terminalWorkingDirectory } from "./diff.ts"
 import { healthResponse } from "./health.ts"
 import { jsonError } from "./http.ts"
+import { scrollbackResponse } from "./scrollback.ts"
 import { transcribeResponse } from "./transcribe.ts"
 import { transcriptionModelResponse } from "./transcription-model.ts"
 import { uiDirectory } from "./ui.ts"
@@ -153,6 +154,23 @@ export const createHttpHandler = ({
     })
   )
 
+  const scrollbackRoute = HttpRouter.route("GET", "/scrollback", (request) =>
+    Effect.gen(function* scrollbackRouteHandler() {
+      const web = yield* HttpServerRequest.toWeb(request)
+      const sessionNumber = parseSessionNumber(
+        new URL(web.url).searchParams.get("session")
+      )
+      const response = yield* Effect.promise(
+        async () =>
+          await scrollbackResponse(
+            sessionNameFor(baseSessionName, sessionNumber),
+            web.headers.get("accept-encoding") ?? ""
+          )
+      )
+      return noStore(HttpServerResponse.fromWeb(response))
+    })
+  )
+
   const commandsRoute = HttpRouter.route("GET", "/commands", () =>
     Effect.gen(function* commandsRouteHandler() {
       const scoped = yield* models.list()
@@ -192,6 +210,7 @@ export const createHttpHandler = ({
     guardedPost("/upload", (request) => uploadResponse(request, uploadsDir)),
     commandsRoute,
     diffRoute,
+    scrollbackRoute,
     staticRoute,
   ]
 

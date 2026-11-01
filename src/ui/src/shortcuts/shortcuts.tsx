@@ -74,7 +74,14 @@ const shortcuts: readonly SendShortcut[] = [
     label: "Change to parent directory",
     text: "cd ..",
   },
-  { className: "pi-button", data: "pi\r", label: "Run pi", text: "π" },
+  {
+    className: "pi-button",
+    // Regular mode prints into tmux history, which touch swipes scroll
+    // locally; fullscreen pi redraws over the network on every swipe step.
+    data: "pi --tui-mode regular\r",
+    label: "Run pi",
+    text: "π",
+  },
   {
     className: "arrow-button arrow-up-button",
     data: "\u001B[A",

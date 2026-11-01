@@ -4,6 +4,8 @@ import { HttpClient, HttpClientRequest, HttpClientResponse } from "effect/http"
 import { DiffResponseSchema } from "../../api/diff.ts"
 import type { DiffResponse } from "../../api/diff.ts"
 import { ApiError, ApiErrorSchema } from "../../api/error.ts"
+import { ScrollbackResponseSchema } from "../../api/scrollback.ts"
+import type { ScrollbackResponse } from "../../api/scrollback.ts"
 import {
   TranscriptionModelBodySchema,
   TranscriptionResponseSchema,
@@ -81,6 +83,15 @@ export const fetchCurrentDiff = (
 ): Effect.Effect<DiffResponse, ApiError, HttpClient.HttpClient> =>
   execute(HttpClientRequest.get(url(`/diff?session=${session}`))).pipe(
     Effect.flatMap(HttpClientResponse.schemaBodyJson(DiffResponseSchema)),
+    Effect.mapError(unexpected)
+  )
+
+/** Snapshot a terminal session's history so it can scroll in the browser. */
+export const fetchScrollback = (
+  session: number
+): Effect.Effect<ScrollbackResponse, ApiError, HttpClient.HttpClient> =>
+  execute(HttpClientRequest.get(url(`/scrollback?session=${session}`))).pipe(
+    Effect.flatMap(HttpClientResponse.schemaBodyJson(ScrollbackResponseSchema)),
     Effect.mapError(unexpected)
   )
 

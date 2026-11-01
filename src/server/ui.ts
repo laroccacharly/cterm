@@ -7,8 +7,12 @@ import { runProcess } from "../process/command.ts"
 
 const repoRoot = path.resolve(import.meta.dir, "../..")
 
-/** Directory that the Vite build writes the production UI into. */
-export const uiDirectory = path.join(repoRoot, "dist-ui")
+/**
+ * Directory that the Vite build writes the production UI into. The e2e server
+ * overrides it so test builds never replace the UI a running cterm serves.
+ */
+export const uiDirectory =
+  process.env.CTERM_UI_DIR ?? path.join(repoRoot, "dist-ui")
 
 /** Raised when the React UI fails to build. */
 export class UiBuildError extends Schema.TaggedError<UiBuildError>()(
@@ -23,9 +27,13 @@ export const buildUi = Effect.fn("buildUi")(function* buildUi() {
   yield* Effect.logInfo("Building the React UI...")
 
   const { exitCode } = yield* runProcess(
-    ChildProcess.make("bunx", ["--bun", "vite", "build"], {
-      cwd: repoRoot,
-    }),
+    ChildProcess.make(
+      "bunx",
+      ["--bun", "vite", "build", "--outDir", uiDirectory],
+      {
+        cwd: repoRoot,
+      }
+    ),
     (cause) => new UiBuildError({ cause })
   )
 

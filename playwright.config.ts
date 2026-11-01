@@ -40,6 +40,7 @@ export default defineConfig({
     command: `mkdir -p ${tmuxDir}; for session in 1 2 3; do tmux kill-session -t cterm-e2e-$session 2>/dev/null || true; done; bun src/cli/index.ts serve --server-port ${port}`,
     env: {
       CTERM_TMUX_SESSION: "cterm-e2e",
+      CTERM_UI_DIR: path.join(stateDir, "dist-ui"),
       TMUX_TMPDIR: tmuxDir,
       XDG_CACHE_HOME: path.join(stateDir, "cache"),
       XDG_CONFIG_HOME: path.join(stateDir, "config"),

@@ -6,6 +6,7 @@ import type { TranscriptionModel } from "../../api/transcription.ts"
 import {
   fetchCommands,
   fetchCurrentDiff,
+  fetchScrollback,
   selectVoiceCommand,
   setTranscriptionModel,
   transcribeAudio,
@@ -31,6 +32,11 @@ export const diffAtom = Atom.family((session: number) =>
   appRuntime
     .atom(fetchCurrentDiff(session))
     .pipe(Atom.swr({ staleTime: Duration.zero }))
+)
+
+/** Snapshot a terminal session's history for client-side scrolling. */
+export const scrollbackAtom = appRuntime.fn((session: number) =>
+  fetchScrollback(session)
 )
 
 /** Transcribe one recorded clip. */

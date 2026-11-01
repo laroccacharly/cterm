@@ -19,7 +19,7 @@ export interface TerminalOptions {
  * point tmux at the server cterm was launched from, not the one `TMUX_TMPDIR`
  * selects, so session commands could target the wrong server.
  */
-const tmuxEnvironment = () => {
+export const tmuxEnvironment = () => {
   const environment = {
     ...process.env,
     COLORTERM: "truecolor",

@@ -1,8 +1,14 @@
+import { useAtomSet } from "@effect/atom-react"
 import { FitAddon } from "@xterm/addon-fit"
 import { WebLinksAddon } from "@xterm/addon-web-links"
 import { Terminal } from "@xterm/xterm"
 import { useCallback, useEffect, useRef, useState } from "react"
 import type { RefObject } from "react"
+
+import { scrollbackAtom } from "../atoms.ts"
+import { attachScrollbackOverlay } from "./scrollback-overlay.ts"
+import type { ScrollbackOverlay } from "./scrollback-overlay.ts"
+import { terminalFontFamily, terminalTheme } from "./terminal-theme.ts"
 
 export type ConnectionStatus = "connected" | "connecting" | "disconnected"
 
@@ -51,6 +57,10 @@ export const useTerminal = (
   const sendResizeRef = useRef<(() => void) | null>(null)
   const focusRef = useRef<(() => void) | null>(null)
   const keyboardControlRef = useRef<KeyboardControl | null>(null)
+  const scrollbackRef = useRef<ScrollbackOverlay | null>(null)
+  const loadScrollback = useAtomSet(scrollbackAtom, { mode: "promise" })
+  const loadScrollbackRef = useRef(loadScrollback)
+  loadScrollbackRef.current = loadScrollback
   const activeRef = useRef(active)
   const [status, setStatus] = useState<ConnectionStatus>("connecting")
   const [fontSize, setFontSize] = useState(defaultFontSize)
@@ -99,6 +109,7 @@ export const useTerminal = (
     activeRef.current = active
     if (!active) {
       keyboardControlRef.current?.close()
+      scrollbackRef.current?.close()
       return
     }
     requestAnimationFrame(() => {
@@ -119,33 +130,10 @@ export const useTerminal = (
       convertEol: false,
       cursorBlink: true,
       cursorStyle: "block",
-      fontFamily:
-        '"Berkeley Mono", "JetBrains Mono", "SFMono-Regular", Consolas, monospace',
+      fontFamily: terminalFontFamily,
       fontSize,
       scrollback: 10_000,
-      theme: {
-        background: "#1a1b26",
-        black: "#1a1b26",
-        blue: "#7aa2f7",
-        brightBlack: "#414868",
-        brightBlue: "#7da6ff",
-        brightCyan: "#0db9d7",
-        brightGreen: "#b9f27c",
-        brightMagenta: "#bb9af7",
-        brightRed: "#ff7a93",
-        brightWhite: "#c0caf5",
-        brightYellow: "#ff9e64",
-        cursor: "#c0caf5",
-        cyan: "#449dab",
-        foreground: "#a9b1d6",
-        green: "#9ece6a",
-        magenta: "#ad8ee6",
-        red: "#f7768e",
-        selectionBackground: "#292e42",
-        selectionForeground: "#c0caf5",
-        white: "#a9b1d6",
-        yellow: "#e0af68",
-      },
+      theme: terminalTheme,
     })
     const fitAddon = new FitAddon()
     terminalRef.current = terminal
@@ -155,6 +143,12 @@ export const useTerminal = (
     terminal.open(container)
     fitAddon.fit()
     terminal.textarea?.setAttribute("aria-label", "Terminal input")
+    const scrollback = attachScrollbackOverlay({
+      container,
+      live: terminal,
+      load: async () => await loadScrollbackRef.current(sessionNumber),
+    })
+    scrollbackRef.current = scrollback
 
     // On touch devices the soft keyboard should only appear when the user
     // explicitly asks for it, so keep the hidden input read-only (and
@@ -195,6 +189,10 @@ export const useTerminal = (
     }
     textarea?.addEventListener("focus", handleFocus)
     textarea?.addEventListener("blur", handleBlur)
+    // Typing returns to the live terminal. Data xterm sends on its own, such
+    // as focus or query reports, must not close the snapshot being read.
+    textarea?.addEventListener("keydown", scrollback.close)
+    textarea?.addEventListener("input", scrollback.close)
     keyboardControlRef.current = {
       close: () => {
         textarea?.blur()
@@ -229,7 +227,12 @@ export const useTerminal = (
     sendResizeRef.current = sendResize
 
     const fitAndResize = () => {
+      const { cols, rows } = terminal
       fitAddon.fit()
+      if (terminal.cols !== cols || terminal.rows !== rows) {
+        // The snapshot was laid out for the old size.
+        scrollback.close()
+      }
       sendResize()
     }
 
@@ -287,11 +290,13 @@ export const useTerminal = (
       if (data.length === 0) {
         return
       }
+      scrollback.close()
       // Go through xterm so bracketed paste and newline normalization apply.
       terminal.paste(data)
       focusTerminal()
     }
     sendInputRef.current = (data) => {
+      scrollback.close()
       writeInput(data)
       focusTerminal()
     }
@@ -300,6 +305,7 @@ export const useTerminal = (
         return
       }
       socket.send(JSON.stringify({ type: "reset" }))
+      scrollback.close()
       terminal.reset()
       focusTerminal()
     }
@@ -330,8 +336,12 @@ export const useTerminal = (
       resizeObserver.disconnect()
       window.visualViewport?.removeEventListener("resize", fitAndResize)
       inputDisposable.dispose()
+      scrollback.dispose()
+      scrollbackRef.current = null
       textarea?.removeEventListener("focus", handleFocus)
       textarea?.removeEventListener("blur", handleBlur)
+      textarea?.removeEventListener("keydown", scrollback.close)
+      textarea?.removeEventListener("input", scrollback.close)
       keyboardControlRef.current = null
       pasteRef.current = null
       sendInputRef.current = null

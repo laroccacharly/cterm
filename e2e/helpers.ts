@@ -20,9 +20,9 @@ export const killTestTmuxServer = (): void => {
   testTmux("kill-server")
 }
 
-/** The scrollback of the terminal session that is currently visible. */
+/** The live rows of the terminal session that is currently visible. */
 export const activeRows = (page: Page): Locator =>
-  page.locator(".terminal-frame--active .xterm-rows")
+  page.locator(".terminal-frame--active .terminal > .xterm .xterm-rows")
 
 /** The hidden input of the terminal session that is currently visible. */
 export const activeInput = (page: Page): Locator =>
