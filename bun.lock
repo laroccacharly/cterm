@@ -7,7 +7,7 @@
       "dependencies": {
         "@effect/atom-react": "4.1.1",
         "@effect/platform-bun": "4.1.1",
-        "@laroccacharly/stt-client": "https://github.com/laroccacharly/stt/releases/download/client-v0.1.0/stt-client-0.1.0.tgz",
+        "@laroccacharly/stt-client": "https://github.com/laroccacharly/stt/releases/download/client-v0.2.0/stt-client-0.2.0.tgz",
         "@pierre/diffs": "^1.4.3",
         "@xterm/addon-fit": "0.12.0-beta.332",
         "@xterm/addon-serialize": "0.15.0-beta.330",
@@ -57,7 +57,7 @@
 
     "@effect/platform-node-shared": ["@effect/platform-node-shared@4.1.1", "", { "dependencies": { "@types/ws": "^8.18.2", "ws": "^8.22.0" }, "peerDependencies": { "effect": "^4.1.1" } }, "sha512-29zdEDs3i5W+t92+mWTFNSfzSHsTpZMcFZ9k4lkkz4tETlC1m4lRwjdjieJtvQ/bKHMnYrCtZwizsBFSf3L5Yg=="],
 
-    "@laroccacharly/stt-client": ["@laroccacharly/stt-client@https://github.com/laroccacharly/stt/releases/download/client-v0.1.0/stt-client-0.1.0.tgz", { "peerDependencies": { "effect": "^4.1.1" } }, "sha512-kvciniUBCaANcihxLDr7P4PW1JuY9EhwkArW2m/x3W8zTBHTVxC6fWzoWPogSvzYxeibcRyQDUNFJj4nl7qKCg=="],
+    "@laroccacharly/stt-client": ["@laroccacharly/stt-client@https://github.com/laroccacharly/stt/releases/download/client-v0.2.0/stt-client-0.2.0.tgz", { "peerDependencies": { "effect": "^4.1.1" } }, "sha512-Z9qj4GTtDUS14Uu5KEFo0bwJCw2+sjrcgwHnvAyt8OlQNp9QrCCUDBVpbPbtA8KFZ5zo6F/SwfAsLwPqpAOvMA=="],
 
     "@nodelib/fs.scandir": ["@nodelib/fs.scandir@2.1.5", "", { "dependencies": { "@nodelib/fs.stat": "2.0.5", "run-parallel": "^1.1.9" } }, "sha512-vq24Bq3ym5HEQm2NKCr3yXDwjc7vTsEThRDnkp2DK9p1uqLR+DHurm/NOTo0KG7HYHU7eppKZj3MyqYuMBf62g=="],
 
