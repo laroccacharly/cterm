@@ -7,7 +7,6 @@ import {
   CommandsResponseSchema,
   commands,
   commandsResponse,
-  transcriptionModelCommands,
 } from "../../src/commands/commands.ts"
 import { commandCatalogue } from "../../src/models/models.ts"
 import { commandsHttpResponse } from "../../src/server/commands.ts"
@@ -25,14 +24,6 @@ describe("Commands endpoint", () => {
       expect(command.label).not.toBe("")
       expect(command.description).not.toBe("")
     }
-  })
-
-  test("flags only the speech-to-text model in use as active", () => {
-    const active = transcriptionModelCommands("elevenlabs/scribe-v2")
-      .filter((command) => command.active === true)
-      .map(({ id }) => id)
-
-    expect(active).toEqual(["stt:elevenlabs/scribe-v2"])
   })
 
   test("gives every command a unique id", () => {

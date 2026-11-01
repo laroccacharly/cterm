@@ -22,7 +22,6 @@ describe("CtermConfigSchema", () => {
       serverPort: 3111,
       sessionName: defaultConfig.sessionName,
       tailscalePort: defaultConfig.tailscalePort,
-      transcriptionModel: defaultConfig.transcriptionModel,
       workingDirectory: defaultConfig.workingDirectory,
     })
   })
@@ -30,13 +29,12 @@ describe("CtermConfigSchema", () => {
   test("keeps explicit fields", () => {
     expect(
       decodeConfig(
-        '{"serverPort":3111,"sessionName":"work","tailscalePort":9000,"transcriptionModel":"elevenlabs/scribe-v2","workingDirectory":"/tmp"}'
+        '{"serverPort":3111,"sessionName":"work","tailscalePort":9000,"workingDirectory":"/tmp"}'
       )
     ).toEqual({
       serverPort: 3111,
       sessionName: "work",
       tailscalePort: 9000,
-      transcriptionModel: "elevenlabs/scribe-v2",
       workingDirectory: "/tmp",
     })
   })
@@ -81,12 +79,12 @@ describe("Config", () => {
     const current = await withConfig(
       Effect.gen(function* updateConfig() {
         const config = yield* Config
-        yield* config.update({ transcriptionModel: "elevenlabs/scribe-v2" })
+        yield* config.update({ sessionName: "new-session" })
         return yield* config.get
       })
     )
 
-    expect(current.transcriptionModel).toBe("elevenlabs/scribe-v2")
+    expect(current.sessionName).toBe("new-session")
     expect(JSON.parse(await readFile(filePath, "utf-8"))).toEqual(current)
   })
 

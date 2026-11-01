@@ -3,7 +3,7 @@ import { HttpServerResponse } from "effect/http"
 import type { HttpServerRequest } from "effect/http"
 
 import type { TranscriptionResponse } from "../api/transcription.ts"
-import type { TranscriptionService } from "../openrouter/transcription.ts"
+import type { SttClient } from "@laroccacharly/stt-client"
 import { jsonError } from "./http.ts"
 
 export const maxAudioBytes = 25 * 1024 * 1024
@@ -17,7 +17,7 @@ const fail = (
 /** Transcribe one raw MediaRecorder payload. */
 export const transcribeResponse = (
   request: HttpServerRequest.HttpServerRequest,
-  transcription: TranscriptionService
+  transcription: SttClient["Service"]
 ): Effect.Effect<HttpServerResponse.HttpServerResponse> =>
   Effect.gen(function* transcribeResponseEffect() {
     const contentType = request.headers["content-type"] ?? "audio/webm"
@@ -48,7 +48,7 @@ export const transcribeResponse = (
         onFailure: (error) => fail(502, error.message),
         onSuccess: (result) =>
           HttpServerResponse.fromWeb(
-            Response.json({ text: result.text } satisfies TranscriptionResponse)
+            Response.json({ text: result } satisfies TranscriptionResponse)
           ),
       }
     )

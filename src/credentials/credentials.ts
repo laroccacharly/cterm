@@ -11,7 +11,7 @@ import {
 /** Vault service name used for every cterm secret in the OS keychain. */
 export const CREDENTIALS_SERVICE = "cterm"
 
-/** OpenRouter key used for transcription and to reach jev. */
+/** OpenRouter key used to reach jev. */
 export const OPENROUTER_API_KEY_ENV = "OPENROUTER_API_KEY"
 
 /** Every secret `cterm login` stores, in display order. */

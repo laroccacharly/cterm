@@ -4,10 +4,6 @@ import { Context, Effect, FileSystem, Layer, Option, Schema } from "effect"
 import * as JsonStore from "effect-lib/json-store"
 import { TailscalePort } from "effect-lib/tailscale"
 
-import {
-  TranscriptionModelSchema,
-  transcriptionModels,
-} from "../api/transcription.ts"
 import { configPath, home } from "./paths.ts"
 
 const Port = Schema.Int.check(Schema.isBetween({ maximum: 65_535, minimum: 1 }))
@@ -23,7 +19,6 @@ export const defaultConfig = {
   sessionName: "cterm",
   // Tailscale keys serve configs by HTTPS port, so cterm gets its own.
   tailscalePort: 8444,
-  transcriptionModel: transcriptionModels[0],
   workingDirectory: path.join(home, "Work"),
 } as const
 
@@ -37,9 +32,6 @@ export const CtermConfigSchema = Schema.Struct({
   ),
   tailscalePort: TailscalePort.pipe(
     Schema.withDecodingDefault(Effect.succeed(defaultConfig.tailscalePort))
-  ),
-  transcriptionModel: TranscriptionModelSchema.pipe(
-    Schema.withDecodingDefault(Effect.succeed(defaultConfig.transcriptionModel))
   ),
   workingDirectory: WorkingDirectory.pipe(
     Schema.withDecodingDefault(Effect.succeed(defaultConfig.workingDirectory))

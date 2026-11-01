@@ -4,7 +4,7 @@ import { VoiceCommandSelector } from "../commands/voice-command.ts"
 import { Config } from "../config/config.ts"
 import { Credentials } from "../credentials/credentials.ts"
 import { ModelsStore } from "../models/store.ts"
-import { Transcription } from "../openrouter/transcription.ts"
+import { SttClient } from "@laroccacharly/stt-client"
 import { killPtySessions } from "../terminal/pty-sessions.ts"
 import { parseSessionNumber } from "../terminal/sessions.ts"
 import type { TerminalSocketData } from "../terminal/socket.ts"
@@ -95,10 +95,9 @@ const acquireServer = (port: number) =>
     const { sessionName, workingDirectory } = yield* config.get
     const options: ServerOptions = {
       baseSessionName: process.env.CTERM_TMUX_SESSION ?? sessionName,
-      config,
       models: yield* ModelsStore,
       port,
-      transcription: yield* Transcription,
+      transcription: yield* SttClient,
       voiceCommandSelector: yield* VoiceCommandSelector,
       workingDirectory,
     }
@@ -131,7 +130,7 @@ export const serverLayer = (port: number) =>
       })
     )
   ).pipe(
-    Layer.provide(Transcription.layer),
+    Layer.provide(SttClient.layer(process.env.CTERM_STT_URL ?? "http://127.0.0.1:4318")),
     Layer.provide(VoiceCommandSelector.layer),
     Layer.provide(ModelsStore.layer),
     Layer.provide(Credentials.layer)

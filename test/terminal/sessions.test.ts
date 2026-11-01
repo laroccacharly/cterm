@@ -10,7 +10,7 @@ describe("terminal sessions", () => {
   test("names tmux sessions after the base name and slot", () => {
     expect(sessionNameFor("cterm", 1)).toBe("cterm-1")
     expect(sessionNameFor("cterm-e2e", terminalSessionCount)).toBe(
-      "cterm-e2e-3"
+      "cterm-e2e-4"
     )
   })
 

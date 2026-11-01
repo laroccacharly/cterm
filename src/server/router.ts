@@ -3,13 +3,12 @@ import path from "node:path"
 import { Effect } from "effect"
 import { HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/http"
 
-import { commands, transcriptionModelCommands } from "../commands/commands.ts"
+import { commands } from "../commands/commands.ts"
 import type { VoiceCommandSelectorService } from "../commands/voice-command.ts"
-import type { ConfigService } from "../config/config.ts"
 import { uploadsDir } from "../config/paths.ts"
 import { commandCatalogue } from "../models/models.ts"
 import type { ModelsStoreService } from "../models/store.ts"
-import type { TranscriptionService } from "../openrouter/transcription.ts"
+import type { SttClient } from "@laroccacharly/stt-client"
 import { runningPtySession } from "../terminal/pty-sessions.ts"
 import { parseSessionNumber, sessionNameFor } from "../terminal/sessions.ts"
 import { commandsHttpResponse } from "./commands.ts"
@@ -18,7 +17,6 @@ import { healthResponse } from "./health.ts"
 import { jsonError } from "./http.ts"
 import { scrollbackResponse } from "./scrollback.ts"
 import { transcribeResponse } from "./transcribe.ts"
-import { transcriptionModelResponse } from "./transcription-model.ts"
 import { uiDirectory } from "./ui.ts"
 import { uploadResponse } from "./upload.ts"
 import { voiceCommandResponse } from "./voice-command.ts"
@@ -96,9 +94,8 @@ const staticRoute = HttpRouter.route("*", "*", (request) =>
 
 export interface HttpHandlerOptions {
   readonly baseSessionName: string
-  readonly config: ConfigService
   readonly models: ModelsStoreService
-  readonly transcription: TranscriptionService
+  readonly transcription: SttClient["Service"]
   readonly voiceCommandSelector: VoiceCommandSelectorService
   /** Directory the tmux sessions started in; fixed for the server's life. */
   readonly workingDirectory: string
@@ -110,7 +107,6 @@ export interface HttpHandlerOptions {
  */
 export const createHttpHandler = ({
   baseSessionName,
-  config,
   models,
   transcription,
   voiceCommandSelector,
@@ -177,15 +173,13 @@ export const createHttpHandler = ({
   const commandsRoute = HttpRouter.route("GET", "/commands", () =>
     Effect.gen(function* commandsRouteHandler() {
       const scoped = yield* models.list()
-      const { transcriptionModel } = yield* config.get
       return noStore(
         commandsHttpResponse([
           ...commandCatalogue(commands, scoped),
-          ...transcriptionModelCommands(transcriptionModel),
         ])
       )
     }).pipe(
-      Effect.catchTag(["ConfigError", "ModelsError"], (failure) =>
+      Effect.catchTag(["ModelsError"], (failure) =>
         Effect.succeed(
           HttpServerResponse.fromWeb(
             jsonError(500, "commands_failed", `Could not ${failure.detail}`)
@@ -203,9 +197,6 @@ export const createHttpHandler = ({
     ),
     guardedPost("/transcribe", (request) =>
       transcribeResponse(request, transcription)
-    ),
-    guardedPost("/transcription-model", (request) =>
-      transcriptionModelResponse(request, config)
     ),
     guardedPost("/voice-command", (request) =>
       voiceCommandResponse(request, voiceCommandSelector)

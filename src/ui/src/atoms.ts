@@ -2,13 +2,11 @@ import { Duration } from "effect"
 import { FetchHttpClient } from "effect/http"
 import { Atom } from "effect/reactivity"
 
-import type { TranscriptionModel } from "../../api/transcription.ts"
 import {
   fetchCommands,
   fetchCurrentDiff,
   fetchScrollback,
   selectVoiceCommand,
-  setTranscriptionModel,
   transcribeAudio,
   uploadFiles,
 } from "./api.ts"
@@ -18,7 +16,7 @@ export const appRuntime = Atom.runtime(FetchHttpClient.layer)
 
 /**
  * Command catalogue, revalidated whenever the Commands page opens since pi's
- * scoped models and the active speech-to-text model change at runtime.
+ * scoped models can change at runtime.
  */
 export const commandsAtom = Atom.keepAlive(
   appRuntime.atom(fetchCommands).pipe(Atom.swr({ staleTime: Duration.zero }))
@@ -42,11 +40,6 @@ export const scrollbackAtom = appRuntime.fn((session: number) =>
 /** Transcribe one recorded clip. */
 export const transcribeAtom = appRuntime.fn((audio: Blob) =>
   transcribeAudio(audio)
-)
-
-/** Switch the server's speech-to-text model. */
-export const transcriptionModelAtom = appRuntime.fn(
-  (model: TranscriptionModel) => setTranscriptionModel(model)
 )
 
 /** Save files on the cterm host, resolving to their absolute paths. */
