@@ -43,6 +43,16 @@ export interface ScrollbackOverlay {
   readonly dispose: () => void
 }
 
+/** For sessions whose live terminal already scrolls its own history. */
+export const noScrollbackOverlay: ScrollbackOverlay = {
+  close: () => {
+    // Nothing is open.
+  },
+  dispose: () => {
+    // Nothing is attached.
+  },
+}
+
 interface ScrollbackOverlayOptions {
   readonly container: HTMLElement
   readonly live: Terminal

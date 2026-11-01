@@ -5,8 +5,12 @@ import { Terminal } from "@xterm/xterm"
 import { useCallback, useEffect, useRef, useState } from "react"
 import type { RefObject } from "react"
 
+import { usesTmux } from "../../../terminal/sessions.ts"
 import { scrollbackAtom } from "../atoms.ts"
-import { attachScrollbackOverlay } from "./scrollback-overlay.ts"
+import {
+  attachScrollbackOverlay,
+  noScrollbackOverlay,
+} from "./scrollback-overlay.ts"
 import type { ScrollbackOverlay } from "./scrollback-overlay.ts"
 import { terminalFontFamily, terminalTheme } from "./terminal-theme.ts"
 
@@ -143,11 +147,14 @@ export const useTerminal = (
     terminal.open(container)
     fitAddon.fit()
     terminal.textarea?.setAttribute("aria-label", "Terminal input")
-    const scrollback = attachScrollbackOverlay({
-      container,
-      live: terminal,
-      load: async () => await loadScrollbackRef.current(sessionNumber),
-    })
+    // Without tmux the live xterm holds the real history and scrolls it.
+    const scrollback = usesTmux(sessionNumber)
+      ? attachScrollbackOverlay({
+          container,
+          live: terminal,
+          load: async () => await loadScrollbackRef.current(sessionNumber),
+        })
+      : noScrollbackOverlay
     scrollbackRef.current = scrollback
 
     // On touch devices the soft keyboard should only appear when the user

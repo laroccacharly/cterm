@@ -10,6 +10,7 @@ import { uploadsDir } from "../config/paths.ts"
 import { commandCatalogue } from "../models/models.ts"
 import type { ModelsStoreService } from "../models/store.ts"
 import type { TranscriptionService } from "../openrouter/transcription.ts"
+import { runningPtySession } from "../terminal/pty-sessions.ts"
 import { parseSessionNumber, sessionNameFor } from "../terminal/sessions.ts"
 import { commandsHttpResponse } from "./commands.ts"
 import { gitDiffResponse, terminalWorkingDirectory } from "./diff.ts"
@@ -140,12 +141,14 @@ export const createHttpHandler = ({
       const sessionNumber = parseSessionNumber(
         new URL(web.url).searchParams.get("session")
       )
-      const directory = yield* Effect.promise(
-        async () =>
-          await terminalWorkingDirectory(
-            sessionNameFor(baseSessionName, sessionNumber),
-            workingDirectory
-          )
+      const pty = runningPtySession(sessionNumber)
+      const directory = yield* Effect.promise(async () =>
+        pty
+          ? await pty.workingDirectory(workingDirectory)
+          : await terminalWorkingDirectory(
+              sessionNameFor(baseSessionName, sessionNumber),
+              workingDirectory
+            )
       )
       const response = yield* Effect.promise(
         async () => await gitDiffResponse(directory)

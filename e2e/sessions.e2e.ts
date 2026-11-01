@@ -1,7 +1,7 @@
 import { expect, test } from "./fixtures.ts"
 import { activeRows, runInActiveTerminal, sessionTab } from "./helpers.ts"
 
-test("keeps three terminal sessions open and switches between them", async ({
+test("keeps four terminal sessions open and switches between them", async ({
   page,
 }) => {
   await page.goto("/")
@@ -10,10 +10,11 @@ test("keeps three terminal sessions open and switches between them", async ({
   const tabs = page
     .getByRole("navigation", { name: "Terminal sessions" })
     .getByRole("button", { name: /^Terminal session \d$/u })
-  await expect(tabs).toHaveCount(3)
+  await expect(tabs).toHaveCount(4)
   await expect(sessionTab(page, 1)).toHaveAttribute("aria-pressed", "true")
   await expect(sessionTab(page, 2)).toHaveAttribute("aria-pressed", "false")
   await expect(sessionTab(page, 3)).toHaveAttribute("aria-pressed", "false")
+  await expect(sessionTab(page, 4)).toHaveAttribute("aria-pressed", "false")
 
   await runInActiveTerminal(page, "export CTERM_SESSION_ONE=alpha")
   await runInActiveTerminal(

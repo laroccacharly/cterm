@@ -1,7 +1,17 @@
 import { Option, Schema } from "effect"
 
 /** cterm always keeps this many terminal sessions available. */
-export const terminalSessionCount = 3
+export const terminalSessionCount = 4
+
+/**
+ * The session whose shell cterm owns directly instead of through tmux, to try
+ * scrolling real history in the browser. It does not survive cterm restarts.
+ */
+export const ptySessionNumber = 4
+
+/** Whether a slot's shell runs in tmux. */
+export const usesTmux = (session: number): boolean =>
+  session !== ptySessionNumber
 
 const SessionNumber = Schema.NumberFromString.pipe(
   Schema.check(Schema.isInt()),

@@ -1,7 +1,7 @@
 import { spawnSync } from "node:child_process"
 import path from "node:path"
 
-import type { Locator, Page } from "@playwright/test"
+import type { CDPSession, Locator, Page } from "@playwright/test"
 
 export const stateDir = path.resolve(process.cwd(), ".playwright")
 
@@ -41,3 +41,43 @@ export const runInActiveTerminal = async (
 /** Every session tab button in the session navigation row. */
 export const sessionTab = (page: Page, session: number): Locator =>
   page.getByRole("button", { exact: true, name: `Terminal session ${session}` })
+
+/** Horizontal position of synthetic touches, inside the terminal. */
+export const touchX = 195
+
+// Playwright has no touch-drag helper, so drive Chrome DevTools Protocol touch
+// events directly. xterm's gesture service listens to document touch events.
+export const withTouch = async (
+  page: Page,
+  run: (client: CDPSession) => Promise<void>
+): Promise<void> => {
+  const client = await page.context().newCDPSession(page)
+  await run(client)
+  await client.detach()
+}
+
+/** Drag one finger vertically across the page. */
+export const touchDrag = async (
+  page: Page,
+  fromY: number,
+  toY: number
+): Promise<void> => {
+  await withTouch(page, async (client) => {
+    const steps = 16
+    await client.send("Input.dispatchTouchEvent", {
+      touchPoints: [{ x: touchX, y: fromY }],
+      type: "touchStart",
+    })
+    for (let step = 1; step <= steps; step += 1) {
+      // oxlint-disable-next-line no-await-in-loop -- CDP touch events must arrive in order
+      await client.send("Input.dispatchTouchEvent", {
+        touchPoints: [{ x: touchX, y: fromY + ((toY - fromY) * step) / steps }],
+        type: "touchMove",
+      })
+    }
+    await client.send("Input.dispatchTouchEvent", {
+      touchPoints: [],
+      type: "touchEnd",
+    })
+  })
+}

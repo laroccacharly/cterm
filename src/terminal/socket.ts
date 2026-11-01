@@ -1,9 +1,13 @@
 import { Option, Predicate } from "effect"
 
 import { parseClientMessage } from "./protocol.ts"
-import { sessionNameFor } from "./sessions.ts"
+import type { ClientMessage } from "./protocol.ts"
+import { ptySession } from "./pty-sessions.ts"
+import type { PtyClient, PtySession } from "./pty-sessions.ts"
+import { sessionNameFor, usesTmux } from "./sessions.ts"
 
 export interface TerminalSocketData {
+  pty?: { readonly client: PtyClient; readonly session: PtySession }
   process?: Bun.Subprocess
   sessionNumber?: number
   terminal?: Bun.Terminal
@@ -30,7 +34,11 @@ export const tmuxEnvironment = () => {
 }
 
 const closeTerminal = (data: TerminalSocketData): void => {
-  const { process: subprocess, terminal } = data
+  const { process: subprocess, pty, terminal } = data
+
+  // A PTY session outlives the browser, so only stop forwarding to it.
+  pty?.session.detach(pty.client)
+  data.pty = undefined
 
   data.process = undefined
   data.terminal = undefined
@@ -43,7 +51,50 @@ const closeTerminal = (data: TerminalSocketData): void => {
   }
 }
 
-/** Bun WebSocket callbacks that bridge xterm.js to a persistent tmux session. */
+const handlePtyMessage = (session: PtySession, message: ClientMessage) => {
+  switch (message.type) {
+    case "input": {
+      session.write(message.data)
+      return
+    }
+    case "resize": {
+      session.resize(message.cols, message.rows)
+      return
+    }
+    case "reset": {
+      // The shell exit closes the socket and the browser reconnects to a
+      // fresh one, as with tmux.
+      session.kill()
+      return
+    }
+    default: {
+      const unhandled: never = message
+      throw new Error(`Unhandled terminal message: ${String(unhandled)}`)
+    }
+  }
+}
+
+const openPty = (
+  socket: Bun.ServerWebSocket<TerminalSocketData>,
+  workingDirectory: string
+) => {
+  const session = ptySession(socket.data.sessionNumber ?? 1, workingDirectory)
+  const client: PtyClient = {
+    close: () => {
+      socket.close(1000, "Terminal exited")
+    },
+    send: (output) => {
+      socket.sendBinary(output)
+    },
+  }
+  socket.data.pty = { client, session }
+  session.attach(client)
+}
+
+/**
+ * Bun WebSocket callbacks that bridge xterm.js to a persistent tmux session,
+ * or to a cterm-owned PTY session for the slot that does not use tmux.
+ */
 export const terminalWebSocket = (
   options: TerminalOptions
 ): Bun.WebSocketHandler<TerminalSocketData> => ({
@@ -66,12 +117,16 @@ export const terminalWebSocket = (
       return
     }
 
-    const { process: subprocess, terminal } = socket.data
+    const message = decoded.value
+    const { process: subprocess, pty, terminal } = socket.data
+    if (pty) {
+      handlePtyMessage(pty.session, message)
+      return
+    }
     if (!terminal || terminal.closed) {
       return
     }
 
-    const message = decoded.value
     switch (message.type) {
       case "input": {
         terminal.write(message.data)
@@ -118,6 +173,10 @@ export const terminalWebSocket = (
   },
   open(socket) {
     try {
+      if (!usesTmux(socket.data.sessionNumber ?? 1)) {
+        openPty(socket, options.workingDirectory)
+        return
+      }
       const terminal = new Bun.Terminal({
         cols: 80,
         data(_terminal, output) {

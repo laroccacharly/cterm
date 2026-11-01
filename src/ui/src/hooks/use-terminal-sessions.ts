@@ -20,7 +20,8 @@ export const useTerminalSessions = (active: boolean): TerminalSessions => {
   const first = useTerminal(1, active && activeSession === 1)
   const second = useTerminal(2, active && activeSession === 2)
   const third = useTerminal(3, active && activeSession === 3)
-  const sessions = [first, second, third] as const
+  const fourth = useTerminal(4, active && activeSession === 4)
+  const sessions = [first, second, third, fourth] as const
   const current = sessions[activeSession - 1] ?? first
 
   const selectSession = useCallback((session: number) => {

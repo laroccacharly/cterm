@@ -5,6 +5,7 @@ import { Config } from "../config/config.ts"
 import { Credentials } from "../credentials/credentials.ts"
 import { ModelsStore } from "../models/store.ts"
 import { Transcription } from "../openrouter/transcription.ts"
+import { killPtySessions } from "../terminal/pty-sessions.ts"
 import { parseSessionNumber } from "../terminal/sessions.ts"
 import type { TerminalSocketData } from "../terminal/socket.ts"
 import { terminalWebSocket } from "../terminal/socket.ts"
@@ -124,6 +125,7 @@ export const serverLayer = (port: number) =>
         try {
           await instance.server.stop(true)
         } finally {
+          killPtySessions()
           await instance.dispose()
         }
       })

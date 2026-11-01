@@ -1,52 +1,20 @@
-import type { CDPSession, Page } from "@playwright/test"
+import type { Page } from "@playwright/test"
 
 import { expect, test } from "./fixtures.ts"
-import { activeRows, runInActiveTerminal } from "./helpers.ts"
+import {
+  activeRows,
+  runInActiveTerminal,
+  touchDrag,
+  touchX,
+  withTouch,
+} from "./helpers.ts"
 
 test.use({ hasTouch: true })
-
-const x = 195
-
-// Playwright has no touch-drag helper, so drive Chrome DevTools Protocol touch
-// events directly. xterm's gesture service listens to document touch events.
-const withTouch = async (
-  page: Page,
-  run: (client: CDPSession) => Promise<void>
-): Promise<void> => {
-  const client = await page.context().newCDPSession(page)
-  await run(client)
-  await client.detach()
-}
-
-const touchDrag = async (
-  page: Page,
-  fromY: number,
-  toY: number
-): Promise<void> => {
-  await withTouch(page, async (client) => {
-    const steps = 16
-    await client.send("Input.dispatchTouchEvent", {
-      touchPoints: [{ x, y: fromY }],
-      type: "touchStart",
-    })
-    for (let step = 1; step <= steps; step += 1) {
-      // oxlint-disable-next-line no-await-in-loop -- CDP touch events must arrive in order
-      await client.send("Input.dispatchTouchEvent", {
-        touchPoints: [{ x, y: fromY + ((toY - fromY) * step) / steps }],
-        type: "touchMove",
-      })
-    }
-    await client.send("Input.dispatchTouchEvent", {
-      touchPoints: [],
-      type: "touchEnd",
-    })
-  })
-}
 
 const tap = async (page: Page, y: number): Promise<void> => {
   await withTouch(page, async (client) => {
     await client.send("Input.dispatchTouchEvent", {
-      touchPoints: [{ x, y }],
+      touchPoints: [{ x: touchX, y }],
       type: "touchStart",
     })
     await client.send("Input.dispatchTouchEvent", {
