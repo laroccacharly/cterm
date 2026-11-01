@@ -79,4 +79,3 @@ test("hides voice commands while keeping voice input available", async ({
     page.getByRole("button", { name: "Start voice input" })
   ).toBeVisible()
 })
-

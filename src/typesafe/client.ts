@@ -28,12 +28,16 @@ export const endpoint = "https://openrouter.ai/api/alpha/decisions"
 export const defaultModel = "jev-latest"
 
 /** TypeSafe aliases (for example `jev-latest`) are namespaced on OpenRouter. */
-export const openRouterModel = (model: string): string =>
-  model.includes("/") ? model : `~typesafe/${model}`
+export const openRouterModel = (model: string): string => {
+  if (model.includes("/")) {
+    return model
+  }
+  return `~typesafe/${model}`
+}
 
 export class TypesafeError extends Data.TaggedError("TypesafeError")<{
   readonly detail: string
-  readonly cause?: unknown
+  readonly cause?: Error
 }> {
   override get message(): string {
     if (!(this.cause instanceof Error)) {
@@ -105,7 +109,10 @@ const requestFor = (
   )
 
 /** Ask jev one System One request and decode its answers. */
-export const systemOne = Effect.fn("systemOne")(
+export const systemOne: (
+  body: SystemOneRequest,
+  options: TypesafeRequestOptions
+) => Effect.Effect<SystemOneResponse, TypesafeError> = Effect.fn("systemOne")(
   function* systemOne(body: SystemOneRequest, options: TypesafeRequestOptions) {
     const client = (yield* HttpClient.HttpClient).pipe(
       HttpClient.transformResponse((effect) =>

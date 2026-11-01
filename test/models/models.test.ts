@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test"
 
-import { Schema } from "effect"
+import { Option, Schema } from "effect"
 
 import { commands } from "../../src/commands/commands.ts"
 import {
@@ -24,28 +24,31 @@ describe("PiSettingsSchema", () => {
 
 describe("parseScopedModel", () => {
   test("names a model after its id without the provider", () => {
-    expect(parseScopedModel("openai-codex/gpt-6.1-sol")).toEqual({
-      id: "openai-codex/gpt-6.1-sol",
-      name: "gpt-6.1-sol",
-    })
+    expect(parseScopedModel("openai-codex/gpt-6.1-sol")).toEqual(
+      Option.some({ id: "openai-codex/gpt-6.1-sol", name: "gpt-6.1-sol" })
+    )
   })
 
   test("drops a :thinking suffix from the id", () => {
     expect(
       parseScopedModel("openrouter/deepseek/deepseek-v4.1-flash:high")
-    ).toEqual({
-      id: "openrouter/deepseek/deepseek-v4.1-flash",
-      name: "deepseek-v4.1-flash",
-    })
+    ).toEqual(
+      Option.some({
+        id: "openrouter/deepseek/deepseek-v4.1-flash",
+        name: "deepseek-v4.1-flash",
+      })
+    )
   })
 
   test("keeps a colon that is not a thinking level", () => {
-    expect(parseScopedModel("ollama/qwen3:8b")?.id).toBe("ollama/qwen3:8b")
+    expect(
+      parseScopedModel("ollama/qwen3:8b").pipe(Option.map(({ id }) => id))
+    ).toEqual(Option.some("ollama/qwen3:8b"))
   })
 
   test("skips globs and blank patterns", () => {
-    expect(parseScopedModel("anthropic/*")).toBeUndefined()
-    expect(parseScopedModel("  ")).toBeUndefined()
+    expect(parseScopedModel("anthropic/*")).toEqual(Option.none())
+    expect(parseScopedModel("  ")).toEqual(Option.none())
   })
 })
 

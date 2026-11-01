@@ -103,9 +103,11 @@ export class Config extends Context.Service<Config, ConfigService>()(
           Effect.withSpan("Config.get")
         )
 
-        const update = Effect.fn("Config.update")(function* update(
+        const update: (
           patch: CtermConfigPatch
-        ) {
+        ) => Effect.Effect<CtermConfig, ConfigError> = Effect.fn(
+          "Config.update"
+        )(function* update(patch: CtermConfigPatch) {
           const next = yield* validate({ ...(yield* get), ...patch }).pipe(
             Effect.mapError(
               (cause) =>

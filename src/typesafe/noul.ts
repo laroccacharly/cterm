@@ -28,10 +28,12 @@ export type NoulAnswer = typeof NoulAnswerSchema.Type
 export const noul = (
   instructions: string,
   criteria?: NoulCriteria
-): NoulQuestion =>
-  criteria === undefined
-    ? { type: "noul", instructions }
-    : { type: "noul", instructions, criteria }
+): NoulQuestion => {
+  if (criteria === undefined) {
+    return { type: "noul", instructions }
+  }
+  return { type: "noul", instructions, criteria }
+}
 
 /** Threshold a Noul probability into a hard yes/no decision. */
 export const noulToBoolean = (answer: NoulAnswer, threshold = 0.5): boolean =>

@@ -55,10 +55,12 @@ const execute = (
     return response
   })
 
-const unexpected = (cause: unknown): ApiError =>
-  cause instanceof ApiError
-    ? cause
-    : new ApiError({ cause, message: "Unexpected response" })
+const unexpected = (cause: unknown): ApiError => {
+  if (cause instanceof ApiError) {
+    return cause
+  }
+  return new ApiError({ cause, message: "Unexpected response" })
+}
 
 /** Read the catalogue that powers the Commands page. */
 export const fetchCommands: Effect.Effect<

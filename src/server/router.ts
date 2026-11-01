@@ -1,7 +1,7 @@
 import path from "node:path"
 
 import type { SttClient } from "@laroccacharly/stt-client"
-import { Effect } from "effect"
+import { Effect, Option } from "effect"
 import { HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/http"
 
 import { commands } from "../commands/commands.ts"
@@ -56,17 +56,29 @@ const fileResponse = (filePath: string, cacheControl: string): Response =>
     headers: { "Cache-Control": cacheControl },
   })
 
+/** Path of a request inside the UI build, with `/` serving `index.html`. */
+const staticPath = (pathname: string): string => {
+  if (pathname === "/") {
+    return "index.html"
+  }
+  return pathname.slice(1)
+}
+
+/** Vite fingerprints `assets/`, so those never change; the rest revalidates. */
+const cacheControlFor = (relativePath: string): string => {
+  if (relativePath.startsWith("assets/")) {
+    return "public, max-age=31536000, immutable"
+  }
+  return "no-cache"
+}
+
 const staticResponse = async (pathname: string): Promise<Response> => {
-  const relativePath = pathname === "/" ? "index.html" : pathname.slice(1)
+  const relativePath = staticPath(pathname)
   const requestedPath = path.resolve(uiRoot, relativePath)
   const insideUiRoot = requestedPath.startsWith(`${uiRoot}${path.sep}`)
 
   if (insideUiRoot && (await Bun.file(requestedPath).exists())) {
-    const immutable = relativePath.startsWith("assets/")
-    return fileResponse(
-      requestedPath,
-      immutable ? "public, max-age=31536000, immutable" : "no-cache"
-    )
+    return fileResponse(requestedPath, cacheControlFor(relativePath))
   }
 
   return new Response("Not found", { status: 404 })
@@ -138,14 +150,15 @@ export const createHttpHandler = ({
         new URL(web.url).searchParams.get("session")
       )
       const pty = runningPtySession(sessionNumber)
-      const directory = yield* Effect.promise(async () =>
-        pty
-          ? await pty.workingDirectory(workingDirectory)
-          : await terminalWorkingDirectory(
-              sessionNameFor(baseSessionName, sessionNumber),
-              workingDirectory
-            )
-      )
+      const directory = yield* Effect.promise(async () => {
+        if (Option.isSome(pty)) {
+          return await pty.value.workingDirectory(workingDirectory)
+        }
+        return await terminalWorkingDirectory(
+          sessionNameFor(baseSessionName, sessionNumber),
+          workingDirectory
+        )
+      })
       const response = yield* Effect.promise(
         async () => await gitDiffResponse(directory)
       )

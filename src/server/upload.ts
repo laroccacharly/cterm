@@ -44,6 +44,18 @@ const decodeName = (name: string): string => {
   }
 }
 
+/** A file name's stem and its slugged extension, empty when it has none. */
+const splitName = (base: string) => {
+  const dot = base.lastIndexOf(".")
+  if (dot <= 0) {
+    return { nameExtension: "", stem: base }
+  }
+  return {
+    nameExtension: slugOf(base.slice(dot + 1)).slice(0, 10),
+    stem: base.slice(0, dot),
+  }
+}
+
 const stampOf = (date: Date): string =>
   date.toISOString().replaceAll(/[-:]/gu, "").replace("T", "-").slice(0, 15)
 
@@ -57,13 +69,9 @@ export const uploadFilename = (
   now: Date,
   id: string
 ): string => {
-  const base = path.basename(decodeName(name))
-  const dot = base.lastIndexOf(".")
-  const stem = dot > 0 ? base.slice(0, dot) : base
-  const nameExtension = dot > 0 ? slugOf(base.slice(dot + 1)).slice(0, 10) : ""
+  const { stem, nameExtension } = splitName(path.basename(decodeName(name)))
   const mime = contentType.split(";")[0]?.trim().toLowerCase() ?? ""
-  const extension =
-    nameExtension.length > 0 ? nameExtension : (extensions.get(mime) ?? "bin")
+  const extension = nameExtension || (extensions.get(mime) ?? "bin")
   const slug = slugOf(stem).slice(0, 40) || "upload"
   return `${stampOf(now)}-${slug}-${id.slice(0, 6)}.${extension}`
 }
@@ -113,22 +121,24 @@ export const uploadResponse = (
     })
     const pngPath = originalPath.replace(/\.hei[cf]$/iu, ".png")
     // Fail open: an unconverted HEIC is still better than a lost upload.
-    const save = isHeif(filename)
-      ? Effect.matchEffect(heifToPng(data, pngPath), {
-          onFailure: (error) =>
-            Effect.logWarning(
-              `Keeping ${filename} as HEIC: ${error.message}`
-            ).pipe(
-              Effect.andThen(
-                Effect.promise(async () => {
-                  await rm(pngPath, { force: true })
-                })
-              ),
-              Effect.andThen(saveOriginal)
-            ),
-          onSuccess: () => Effect.succeed(pngPath),
-        })
-      : saveOriginal
+    const saveAsPng = Effect.matchEffect(heifToPng(data, pngPath), {
+      onFailure: (error) =>
+        Effect.logWarning(`Keeping ${filename} as HEIC: ${error.message}`).pipe(
+          Effect.andThen(
+            Effect.promise(async () => {
+              await rm(pngPath, { force: true })
+            })
+          ),
+          Effect.andThen(saveOriginal)
+        ),
+      onSuccess: () => Effect.succeed(pngPath),
+    })
+    const save = Effect.suspend(() => {
+      if (isHeif(filename)) {
+        return saveAsPng
+      }
+      return saveOriginal
+    })
     return yield* Effect.match(Effect.andThen(prepare, save), {
       onFailure: () => fail(500, "Could not save the file"),
       onSuccess: (savedPath) =>

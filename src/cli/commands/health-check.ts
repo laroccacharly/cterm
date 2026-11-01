@@ -12,9 +12,7 @@ const serverPortFlag = Flag.Int("server-port").pipe(
 export const healthCheckCommand = Command.make(
   "health-check",
   { serverPort: Flag.optional(serverPortFlag) },
-  Effect.fn("healthCheckCommand")(function* healthCheckCommand({
-    serverPort,
-  }) {
+  Effect.fn("healthCheckCommand")(function* healthCheckCommand({ serverPort }) {
     const config = yield* Config
     const resolved = yield* config.resolve("serverPort", serverPort)
 

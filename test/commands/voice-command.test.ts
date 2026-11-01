@@ -36,28 +36,23 @@ describe("voiceCommandCriteria", () => {
 describe("voiceCommandForChoice", () => {
   test("resolves a matching choice to its command", () => {
     expect(
-      voiceCommandForChoice(commands, {
-        choice: "new-session",
-        type: "choice",
-      })?.id
-    ).toBe("new-session")
+      voiceCommandForChoice(
+        commands,
+        Option.some({ choice: "new-session", type: "choice" })
+      ).pipe(Option.map(({ id }) => id))
+    ).toEqual(Option.some("new-session"))
   })
 
   test("rejects unknown choices and non-choice answers", () => {
-    expect(
-      voiceCommandForChoice(commands, { choice: "nope", type: "choice" })
-    ).toBeUndefined()
-    expect(
-      voiceCommandForChoice(commands, {
-        choice: VOICE_COMMAND_NONE_ID,
-        type: "choice",
-      })
-    ).toBeUndefined()
-    expect(
-      voiceCommandForChoice(commands, { noul: 0.9, type: "noul" })
-    ).toBeUndefined()
-    const empty: Answer[] = []
-    expect(voiceCommandForChoice(commands, empty[0])).toBeUndefined()
+    const rejected: readonly Option.Option<Answer>[] = [
+      Option.some({ choice: "nope", type: "choice" }),
+      Option.some({ choice: VOICE_COMMAND_NONE_ID, type: "choice" }),
+      Option.some({ noul: 0.9, type: "noul" }),
+      Option.none(),
+    ]
+    for (const answer of rejected) {
+      expect(voiceCommandForChoice(commands, answer)).toEqual(Option.none())
+    }
   })
 })
 

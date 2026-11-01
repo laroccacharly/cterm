@@ -12,9 +12,9 @@
     "build:ui": "vite build",
     "test": "bun test",
     "test:e2e": "playwright test",
-    "lint": "bun --bun oxlint .",
+    "lint": "bun --bun oxlint . && oxfmt --check",
     "lint:fix": "bun --bun oxlint . --fix",
-    "format": "oxfmt .",
+    "format": "oxfmt",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -42,6 +42,7 @@
     "oxlint": "1.83.0",
     "oxlint-plugin-anti-slop": "github:dmmulroy/anti-slop#c44ef22ca116d0ba62a3ff663a0bd13a3f3fa40b",
     "oxlint-tsgolint": "7",
+    "ts-lint": "github:laroccacharly/ts-lint#v0.7.1",
     "typescript": "^7.0.2",
     "ultracite": "^7.11.1",
     "vite": "^8.3.0"

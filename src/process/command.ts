@@ -1,4 +1,5 @@
 import { Effect, Stream } from "effect"
+import type { PlatformError } from "effect"
 import { ChildProcessSpawner } from "effect/process"
 import type { ChildProcess } from "effect/process"
 
@@ -13,7 +14,7 @@ export interface ProcessResult {
  */
 export const runProcess = <E>(
   command: ChildProcess.Command,
-  mapError: (cause: unknown) => E
+  mapError: (cause: PlatformError.PlatformError) => E
 ): Effect.Effect<ProcessResult, E, ChildProcessSpawner.ChildProcessSpawner> =>
   Effect.gen(function* runProcessEffect() {
     const spawner = yield* ChildProcessSpawner.ChildProcessSpawner

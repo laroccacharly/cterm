@@ -40,37 +40,39 @@ export class ModelsStore extends Context.Service<
       Effect.gen(function* modelsStore() {
         const fs = yield* FileSystem.FileSystem
 
-        const list = Effect.fn("ModelsStore.list")(function* list() {
-          const exists = yield* fs
-            .exists(filePath)
-            .pipe(
+        const list: () => Effect.Effect<readonly ScopedModel[], ModelsError> =
+          Effect.fn("ModelsStore.list")(function* list() {
+            const exists = yield* fs
+              .exists(filePath)
+              .pipe(
+                Effect.mapError(
+                  (cause) =>
+                    new ModelsError({ cause, detail: `check ${filePath}` })
+                )
+              )
+
+            if (!exists) {
+              return []
+            }
+
+            const raw = yield* fs
+              .readFileString(filePath)
+              .pipe(
+                Effect.mapError(
+                  (cause) =>
+                    new ModelsError({ cause, detail: `read ${filePath}` })
+                )
+              )
+
+            const settings = yield* decodeSettings(raw).pipe(
               Effect.mapError(
                 (cause) =>
-                  new ModelsError({ cause, detail: `check ${filePath}` })
+                  new ModelsError({ cause, detail: `parse ${filePath}` })
               )
             )
 
-          if (!exists) {
-            return []
-          }
-
-          const raw = yield* fs
-            .readFileString(filePath)
-            .pipe(
-              Effect.mapError(
-                (cause) =>
-                  new ModelsError({ cause, detail: `read ${filePath}` })
-              )
-            )
-
-          const settings = yield* decodeSettings(raw).pipe(
-            Effect.mapError(
-              (cause) => new ModelsError({ cause, detail: `parse ${filePath}` })
-            )
-          )
-
-          return scopedModels(settings)
-        })
+            return scopedModels(settings)
+          })
 
         return ModelsStore.of({ list })
       })

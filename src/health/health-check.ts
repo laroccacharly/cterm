@@ -2,6 +2,7 @@ import { Effect, Schema } from "effect"
 import { HttpClient, HttpClientResponse } from "effect/http"
 
 import { HealthResponseSchema } from "../server/health.ts"
+import type { HealthResponse } from "../server/health.ts"
 
 /** Raised when the cterm server cannot be reached or reports a problem. */
 export class HealthCheckError extends Schema.TaggedError<HealthCheckError>()(
@@ -13,9 +14,13 @@ export class HealthCheckError extends Schema.TaggedError<HealthCheckError>()(
 ) {}
 
 /** Fetch `/health` from a locally running cterm server. */
-export const checkHealth = Effect.fn("checkHealth")(function* checkHealth(
+export const checkHealth: (
   port: number
-) {
+) => Effect.Effect<
+  { readonly health: HealthResponse; readonly url: string },
+  HealthCheckError,
+  HttpClient.HttpClient
+> = Effect.fn("checkHealth")(function* checkHealth(port: number) {
   const url = `http://127.0.0.1:${port}/health`
   const client = yield* HttpClient.HttpClient
 

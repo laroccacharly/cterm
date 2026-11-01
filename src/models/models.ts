@@ -1,4 +1,4 @@
-import { Effect, Schema } from "effect"
+import { Effect, Option, Schema } from "effect"
 
 import type { Command } from "../commands/commands.ts"
 
@@ -37,23 +37,24 @@ export type PiSettings = typeof PiSettingsSchema.Type
  * Turns one `enabledModels` pattern into a model. Glob patterns name a set
  * of models rather than one `/model` target, so they are skipped.
  */
-export const parseScopedModel = (pattern: string): ScopedModel | undefined => {
+export const parseScopedModel = (
+  pattern: string
+): Option.Option<ScopedModel> => {
   const trimmed = pattern.trim()
 
   if (trimmed.length === 0 || /[*?[]/u.test(trimmed)) {
-    return undefined
+    return Option.none()
   }
 
   const id = trimmed.replace(THINKING_SUFFIX, "")
-  return { id, name: id.slice(id.lastIndexOf("/") + 1) }
+  return Option.some({ id, name: id.slice(id.lastIndexOf("/") + 1) })
 }
 
 /** Every switchable model in pi's scope, in pi's own order. */
 export const scopedModels = (settings: PiSettings): readonly ScopedModel[] =>
-  settings.enabledModels.flatMap((pattern) => {
-    const model = parseScopedModel(pattern)
-    return model === undefined ? [] : [model]
-  })
+  settings.enabledModels.flatMap((pattern) =>
+    Option.toArray(parseScopedModel(pattern))
+  )
 
 /** Command id for a model, namespaced so it cannot collide with a normal command. */
 export const modelCommandId = (id: string): string =>

@@ -19,11 +19,11 @@ export const logoutCommand = Command.make(
             })
         )
       )
-      yield* Console.log(
-        removed
-          ? `Removed ${name} from the OS keychain`
-          : `No stored ${name} found`
-      )
+      if (removed) {
+        yield* Console.log(`Removed ${name} from the OS keychain`)
+        continue
+      }
+      yield* Console.log(`No stored ${name} found`)
     }
   })
 ).pipe(

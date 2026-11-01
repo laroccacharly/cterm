@@ -10,7 +10,8 @@ test.use({ ...devices["Pixel 5"] })
 test("soft keyboard stays closed until the keyboard button is tapped", async ({
   page,
 }) => {
-  let latestRows: number | undefined
+  // No resize has been sent yet; the terminal reports at least 24 rows.
+  let latestRows = 0
   page.on("websocket", (socket) => {
     socket.on("framesent", ({ payload }) => {
       if (!Predicate.isString(payload)) {

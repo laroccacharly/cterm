@@ -41,7 +41,7 @@ const VOICE_COMMAND_TIMEOUT_MS = 5000
 export class VoiceCommandSelectionError extends Schema.TaggedError<VoiceCommandSelectionError>()(
   "VoiceCommandSelectionError",
   {
-    cause: Schema.Defect(),
+    cause: Schema.optionalKey(Schema.Defect()),
     detail: Schema.String,
   }
 ) {
@@ -69,76 +69,81 @@ export const voiceCommandCriteria = (catalogue: readonly Command[]) => {
 /** Resolve a jev answer back to a command from the catalogue. */
 export const voiceCommandForChoice = (
   catalogue: readonly Command[],
-  answer: Answer | undefined
-): Command | undefined => {
+  answer: Option.Option<Answer>
+): Option.Option<Command> => {
   if (
-    answer === undefined ||
-    answer.type !== "choice" ||
-    answer.choice === VOICE_COMMAND_NONE_ID
+    Option.isNone(answer) ||
+    answer.value.type !== "choice" ||
+    answer.value.choice === VOICE_COMMAND_NONE_ID
   ) {
-    return undefined
+    return Option.none()
   }
-  return catalogue.find((command) => command.id === answer.choice)
+  const chosen = answer.value.choice
+  return Option.fromUndefinedOr(
+    catalogue.find((command) => command.id === chosen)
+  )
 }
 
 /** Ask jev which supported command a spoken transcript describes. */
-export const selectVoiceCommand = Effect.fn("selectVoiceCommand")(
-  function* selectVoiceCommand(
-    transcript: string,
-    catalogue: readonly Command[] = commands
-  ) {
-    const credentials = yield* Credentials
-    const apiKey = yield* credentials.resolve(OPENROUTER_API_KEY_ENV).pipe(
-      Effect.mapError(
-        (cause) =>
-          new VoiceCommandSelectionError({ cause, detail: cause.message })
-      ),
-      Effect.flatMap(
-        Option.match({
-          onNone: () =>
-            Effect.fail(
-              new VoiceCommandSelectionError({
-                cause: undefined,
-                detail:
-                  "No OpenRouter API key found; run `cterm login` or set OPENROUTER_API_KEY",
-              })
-            ),
-          onSome: Effect.succeed,
-        })
-      )
-    )
-
-    const response = yield* systemOne(
-      {
-        model: defaultModel,
-        questions: {
-          [VOICE_COMMAND_QUESTION_ID]: choice(
-            VOICE_COMMAND_INSTRUCTIONS,
-            voiceCommandCriteria(catalogue)
+export const selectVoiceCommand: (
+  transcript: string,
+  catalogue?: readonly Command[]
+) => Effect.Effect<
+  Option.Option<Command>,
+  VoiceCommandSelectionError,
+  Credentials
+> = Effect.fn("selectVoiceCommand")(function* selectVoiceCommand(
+  transcript: string,
+  catalogue: readonly Command[] = commands
+) {
+  const credentials = yield* Credentials
+  const apiKey = yield* credentials.resolve(OPENROUTER_API_KEY_ENV).pipe(
+    Effect.mapError(
+      (cause) =>
+        new VoiceCommandSelectionError({ cause, detail: cause.message })
+    ),
+    Effect.flatMap(
+      Option.match({
+        onNone: () =>
+          Effect.fail(
+            new VoiceCommandSelectionError({
+              detail:
+                "No OpenRouter API key found; run `cterm login` or set OPENROUTER_API_KEY",
+            })
           ),
-        },
-        state: `The user said: "${transcript}"`,
+        onSome: Effect.succeed,
+      })
+    )
+  )
+
+  const response = yield* systemOne(
+    {
+      model: defaultModel,
+      questions: {
+        [VOICE_COMMAND_QUESTION_ID]: choice(
+          VOICE_COMMAND_INSTRUCTIONS,
+          voiceCommandCriteria(catalogue)
+        ),
       },
-      {
-        apiKey,
-        retries: VOICE_COMMAND_RETRIES,
-        timeoutMs: VOICE_COMMAND_TIMEOUT_MS,
-      }
-    ).pipe(
-      Effect.mapError(
-        (cause) =>
-          new VoiceCommandSelectionError({ cause, detail: cause.message })
-      )
+      state: `The user said: "${transcript}"`,
+    },
+    {
+      apiKey,
+      retries: VOICE_COMMAND_RETRIES,
+      timeoutMs: VOICE_COMMAND_TIMEOUT_MS,
+    }
+  ).pipe(
+    Effect.mapError(
+      (cause) =>
+        new VoiceCommandSelectionError({ cause, detail: cause.message })
     )
+  )
 
-    const command = voiceCommandForChoice(
-      catalogue,
-      response.answers[VOICE_COMMAND_QUESTION_ID]
-    )
-
-    return Option.fromUndefinedOr(command)
-  }
-)
+  return voiceCommandForChoice(
+    catalogue,
+    Option.fromUndefinedOr(response.answers[VOICE_COMMAND_QUESTION_ID])
+  )
+})
 
 export interface VoiceCommandSelectorService {
   readonly select: (

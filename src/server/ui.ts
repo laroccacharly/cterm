@@ -23,7 +23,11 @@ export class UiBuildError extends Schema.TaggedError<UiBuildError>()(
 ) {}
 
 /** Build the React UI with Vite. */
-export const buildUi = Effect.fn("buildUi")(function* buildUi() {
+export const buildUi: () => Effect.Effect<
+  void,
+  UiBuildError,
+  ChildProcessSpawner.ChildProcessSpawner
+> = Effect.fn("buildUi")(function* buildUi() {
   yield* Effect.logInfo("Building the React UI...")
 
   const { exitCode } = yield* runProcess(

@@ -2,6 +2,7 @@ import { readlink } from "node:fs/promises"
 
 import { SerializeAddon } from "@xterm/addon-serialize"
 import { Terminal } from "@xterm/headless"
+import { Option } from "effect"
 
 const encoder = new TextEncoder()
 
@@ -145,7 +146,8 @@ export const ptySession = (
 /** The PTY session for a slot, if its shell is running. */
 export const runningPtySession = (
   sessionNumber: number
-): PtySession | undefined => sessions.get(sessionNumber)
+): Option.Option<PtySession> =>
+  Option.fromUndefinedOr(sessions.get(sessionNumber))
 
 /** Kill every PTY shell, for when cterm stops. */
 export const killPtySessions = (): void => {

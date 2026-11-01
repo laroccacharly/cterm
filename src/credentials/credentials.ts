@@ -8,6 +8,8 @@ import {
   Schema,
 } from "effect"
 
+import { causeMessage } from "../errors/cause.ts"
+
 /** Vault service name used for every cterm secret in the OS keychain. */
 export const CREDENTIALS_SERVICE = "cterm"
 
@@ -37,7 +39,7 @@ const keychainHint =
 
 /** Keychain failure detail, keeping the underlying error so it is diagnosable. */
 const keychainDetail = (action: string, cause: unknown): string =>
-  `${action}: ${keychainHint} (${cause instanceof Error ? cause.message : String(cause)})`
+  `${action}: ${keychainHint} (${causeMessage(cause)})`
 
 const fromEnv = (
   name: SecretName
@@ -96,9 +98,10 @@ const load = (
       }),
   }).pipe(
     Effect.map((value) =>
-      value === null || value.trim().length === 0
-        ? Option.none<Redacted.Redacted>()
-        : Option.some(Redacted.make(value))
+      Option.fromNullishOr(value).pipe(
+        Option.filter((secret) => secret.trim().length > 0),
+        Option.map((secret) => Redacted.make(secret))
+      )
     )
   )
 
@@ -143,7 +146,10 @@ const resolve = (
 ): Effect.Effect<Option.Option<Redacted.Redacted>, CredentialsError> =>
   Effect.gen(function* resolveSecret() {
     const env = yield* fromEnv(name)
-    return Option.isSome(env) ? env : yield* load(name)
+    if (Option.isSome(env)) {
+      return env
+    }
+    return yield* load(name)
   })
 
 export interface CredentialsService {

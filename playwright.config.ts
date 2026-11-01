@@ -8,6 +8,14 @@ const stateDir = path.resolve(process.cwd(), ".playwright")
 const tmuxDir = path.join(stateDir, "tmux")
 const isCi = Boolean(process.env.CI)
 
+/** CI reports for GitHub and retries flaky runs; local runs list and fail fast. */
+const ciSettings = () => {
+  if (isCi) {
+    return { reporter: "github" as const, retries: 2 }
+  }
+  return { reporter: "list" as const, retries: 0 }
+}
+
 export default defineConfig({
   expect: { timeout: 10_000 },
   forbidOnly: isCi,
@@ -27,8 +35,7 @@ export default defineConfig({
       },
     },
   ],
-  reporter: isCi ? "github" : "list",
-  retries: isCi ? 2 : 0,
+  ...ciSettings(),
   testDir: "./e2e",
   testMatch: "**/*.e2e.ts",
   timeout: 30_000,

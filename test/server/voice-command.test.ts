@@ -25,7 +25,6 @@ const failingSelector: VoiceCommandSelectorService = {
   select: () =>
     Effect.fail(
       new VoiceCommandSelectionError({
-        cause: undefined,
         detail: "No supported command matched",
       })
     ),

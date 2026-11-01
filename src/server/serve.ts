@@ -1,5 +1,5 @@
 import { SttClient } from "@laroccacharly/stt-client"
-import { Effect, Layer, Schema } from "effect"
+import { Effect, Layer, Option, Schema } from "effect"
 
 import { VoiceCommandSelector } from "../commands/voice-command.ts"
 import { Config } from "../config/config.ts"
@@ -51,6 +51,36 @@ interface ServerOptions extends HttpHandlerOptions {
   readonly port: number
 }
 
+/**
+ * Upgrade a same-origin `/ws` request to the terminal socket. None once it is
+ * upgraded, since Bun then sends no HTTP response.
+ */
+const upgradeSocket = (
+  request: Request,
+  url: URL,
+  socketServer: Bun.Server<TerminalSocketData>
+): Option.Option<Response> => {
+  if (!isSameOrigin(request)) {
+    return Option.some(
+      new Response("Forbidden", { headers: securityHeaders, status: 403 })
+    )
+  }
+  const upgraded = socketServer.upgrade(request, {
+    data: {
+      sessionNumber: parseSessionNumber(url.searchParams.get("session")),
+    },
+  })
+  if (upgraded) {
+    return Option.none()
+  }
+  return Option.some(
+    new Response("WebSocket upgrade required", {
+      headers: securityHeaders,
+      status: 426,
+    })
+  )
+}
+
 const makeServer = (options: ServerOptions): CtermServer => {
   const http = createHttpHandler(options)
 
@@ -59,24 +89,7 @@ const makeServer = (options: ServerOptions): CtermServer => {
       const url = new URL(request.url)
 
       if (url.pathname === "/ws") {
-        if (!isSameOrigin(request)) {
-          return new Response("Forbidden", {
-            headers: securityHeaders,
-            status: 403,
-          })
-        }
-
-        const upgraded = socketServer.upgrade(request, {
-          data: {
-            sessionNumber: parseSessionNumber(url.searchParams.get("session")),
-          },
-        })
-        return upgraded
-          ? undefined
-          : new Response("WebSocket upgrade required", {
-              headers: securityHeaders,
-              status: 426,
-            })
+        return Option.getOrUndefined(upgradeSocket(request, url, socketServer))
       }
 
       // stt can take minutes on a cold model load, longer than Bun's 10 s
@@ -88,6 +101,8 @@ const makeServer = (options: ServerOptions): CtermServer => {
       return withSecurityHeaders(await http.handler(request))
     },
     hostname: "127.0.0.1",
+    // Bun's default; the stt routes above lift it per request.
+    idleTimeout: 10,
     maxRequestBodySize: Math.max(maxAudioBytes, maxUploadBytes),
     port: options.port,
     websocket: terminalWebSocket(options),

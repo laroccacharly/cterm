@@ -67,9 +67,11 @@ export const terminalWorkingDirectory = async (
     "#{pane_current_path}",
   ])
 
-  return result.exitCode === 0 && result.stdout.trim() !== ""
-    ? result.stdout.trim()
-    : fallback
+  const directory = result.stdout.trim()
+  if (result.exitCode !== 0 || directory === "") {
+    return fallback
+  }
+  return directory
 }
 
 /**

@@ -4,6 +4,8 @@ import path from "node:path"
 
 import { Effect } from "effect"
 
+import { causeError } from "../errors/cause.ts"
+
 export const heifConvertMissingMessage =
   "heif-convert is not installed on the cterm host; install it (e.g. `sudo pacman -S libheif`) and run `bun cterm service reinstall`"
 
@@ -15,9 +17,10 @@ export const isHeif = (filename: string): boolean =>
 export const ensureHeifConvert = (
   which: (command: string) => string | null = Bun.which
 ): Effect.Effect<void, Error> =>
-  which("heif-convert") === null
-    ? Effect.fail(new Error(heifConvertMissingMessage))
-    : Effect.void
+  Effect.when(
+    Effect.fail(new Error(heifConvertMissingMessage)),
+    Effect.sync(() => which("heif-convert") === null)
+  ).pipe(Effect.asVoid)
 
 /**
  * Decode a HEIC/HEIF image (what iPhones send) into a PNG at `output`. The
@@ -30,8 +33,7 @@ export const heifToPng = (
   Effect.andThen(
     ensureHeifConvert(),
     Effect.tryPromise({
-      catch: (cause) =>
-        cause instanceof Error ? cause : new Error(String(cause)),
+      catch: causeError,
       try: async () => {
         const input = path.join(tmpdir(), `cterm-${crypto.randomUUID()}.heic`)
         await Bun.write(input, data)

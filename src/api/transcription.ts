@@ -6,4 +6,3 @@ export const TranscriptionResponseSchema = Schema.Struct({
 })
 
 export type TranscriptionResponse = typeof TranscriptionResponseSchema.Type
-

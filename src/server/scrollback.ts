@@ -1,3 +1,5 @@
+import { Option } from "effect"
+
 import type { ScrollbackResponse } from "../api/scrollback.ts"
 import { tmuxEnvironment } from "../terminal/socket.ts"
 import { jsonError } from "./http.ts"
@@ -22,7 +24,7 @@ const tmux = async (
 
 const readScrollback = async (
   sessionName: string
-): Promise<ScrollbackResponse | undefined> => {
+): Promise<Option.Option<ScrollbackResponse>> => {
   const state = await tmux(
     "display-message",
     "-p",
@@ -31,10 +33,10 @@ const readScrollback = async (
     "#{alternate_on}#{mouse_any_flag}"
   )
   if (state.exitCode !== 0) {
-    return undefined
+    return Option.none()
   }
   if (state.stdout.trim() !== "00") {
-    return { content: "", fullScreenApp: true }
+    return Option.some({ content: "", fullScreenApp: true })
   }
 
   const capture = await tmux(
@@ -47,10 +49,13 @@ const readScrollback = async (
     sessionName
   )
   if (capture.exitCode !== 0) {
-    return undefined
+    return Option.none()
   }
   // Drop the final newline so the last pane row lands on the last screen row.
-  return { content: capture.stdout.replace(/\n$/u, ""), fullScreenApp: false }
+  return Option.some({
+    content: capture.stdout.replace(/\n$/u, ""),
+    fullScreenApp: false,
+  })
 }
 
 /**
@@ -61,8 +66,8 @@ export const scrollbackResponse = async (
   sessionName: string,
   acceptEncoding: string
 ): Promise<Response> => {
-  const scrollback = await readScrollback(sessionName)
-  if (scrollback === undefined) {
+  const snapshot = await readScrollback(sessionName)
+  if (Option.isNone(snapshot)) {
     return jsonError(
       404,
       "session_not_found",
@@ -70,6 +75,7 @@ export const scrollbackResponse = async (
     )
   }
 
+  const scrollback = snapshot.value
   if (!acceptEncoding.includes("gzip")) {
     return Response.json(scrollback)
   }

@@ -1,5 +1,6 @@
 import { Option, Predicate } from "effect"
 
+import { causeMessage } from "../errors/cause.ts"
 import { parseClientMessage } from "./protocol.ts"
 import type { ClientMessage } from "./protocol.ts"
 import { ptySession } from "./pty-sessions.ts"
@@ -38,10 +39,10 @@ const closeTerminal = (data: TerminalSocketData): void => {
 
   // A PTY session outlives the browser, so only stop forwarding to it.
   pty?.session.detach(pty.client)
-  data.pty = undefined
+  delete data.pty
 
-  data.process = undefined
-  data.terminal = undefined
+  delete data.process
+  delete data.terminal
 
   if (subprocess && !subprocess.killed) {
     subprocess.kill("SIGHUP")
@@ -216,7 +217,7 @@ export const terminalWebSocket = (
       socket.data.terminal = terminal
       socket.data.process = subprocess
     } catch (error) {
-      const detail = error instanceof Error ? error.message : String(error)
+      const detail = causeMessage(error)
       socket.send(
         `\r\n\u001B[31mUnable to start terminal: ${detail}\u001B[0m\r\n`
       )

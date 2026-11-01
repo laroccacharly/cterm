@@ -32,13 +32,16 @@ test("dropping a file on the terminal pastes its path", async ({ page }) => {
   await page.goto("/")
   await expect(page.locator('[data-status="connected"]')).toBeAttached()
 
-  const dataTransfer = await page.evaluateHandle((bytes) => {
-    const transfer = new DataTransfer()
-    transfer.items.add(
-      new File([new Uint8Array(bytes)], "shot.png", { type: "image/png" })
-    )
-    return transfer
-  }, [...png])
+  const dataTransfer = await page.evaluateHandle(
+    (bytes) => {
+      const transfer = new DataTransfer()
+      transfer.items.add(
+        new File([new Uint8Array(bytes)], "shot.png", { type: "image/png" })
+      )
+      return transfer
+    },
+    [...png]
+  )
   const frame = page.locator(".terminal-frame--active")
   await frame.dispatchEvent("dragover", { dataTransfer })
   await expect(page.getByText("Drop files to paste their paths")).toBeVisible()
@@ -53,15 +56,18 @@ test("pasting an image into the terminal pastes its saved path", async ({
   await page.goto("/")
   await expect(page.locator('[data-status="connected"]')).toBeAttached()
 
-  await activeInput(page).evaluate((input, bytes) => {
-    const transfer = new DataTransfer()
-    transfer.items.add(
-      new File([new Uint8Array(bytes)], "shot.png", { type: "image/png" })
-    )
-    input.dispatchEvent(
-      new ClipboardEvent("paste", { bubbles: true, clipboardData: transfer })
-    )
-  }, [...png])
+  await activeInput(page).evaluate(
+    (input, bytes) => {
+      const transfer = new DataTransfer()
+      transfer.items.add(
+        new File([new Uint8Array(bytes)], "shot.png", { type: "image/png" })
+      )
+      input.dispatchEvent(
+        new ClipboardEvent("paste", { bubbles: true, clipboardData: transfer })
+      )
+    },
+    [...png]
+  )
 
   await expect(activeRows(page)).toContainText(savedPath)
 })
